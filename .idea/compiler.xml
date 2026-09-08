@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="community-mq-consumer-framework" />
+        <module name="community-parameter" />
+        <module name="community-mq-producer-framework" />
+        <module name="community-service-delay-queue-framework" />
+        <module name="community-core-service" />
+        <module name="community-redisson-common-framework" />
+        <module name="community-redis-rate-limit-framework" />
+        <module name="community-common" />
+        <module name="community-redis-framework" />
+        <module name="community-mq-common-framework" />
+        <module name="community-redis-common-framework" />
+        <module name="community-repeat-execute-limit-framework" />
+        <module name="community-service-lock-frame" />
+        <module name="community-bloom-filter-framework" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="community-rate-limit-framework" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="community-bloom-filter-framework" options="" />
+      <module name="community-common" options="" />
+      <module name="community-core-service" options="" />
+      <module name="community-mq-common-framework" options="" />
+      <module name="community-mq-consumer-framework" options="" />
+      <module name="community-mq-framework" options="" />
+      <module name="community-mq-producer-framework" options="" />
+      <module name="community-parameter" options="" />
+      <module name="community-redis-common-framework" options="" />
+      <module name="community-redis-framework" options="" />
+      <module name="community-redis-tool-framework" options="" />
+      <module name="community-redisson-common-framework" options="" />
+      <module name="community-redisson-framework" options="" />
+      <module name="lucky_community" options="" />
+    </option>
+  </component>
+</project>

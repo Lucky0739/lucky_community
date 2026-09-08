@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/community-common/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-core-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-core-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-mq-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-parameter/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-parameter/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-rate-limit-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-rate-limit-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redis-tool-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-repeat-execute-limit-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/community-redisson-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="file:///src/main/java" charset="UTF-8" />
+    <file url="file:///src/main/resources" charset="UTF-8" />
+  </component>
+</project>

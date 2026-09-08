@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="初始化项目">
+      <change afterPath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/___.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/___1.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/在变基之前未提交的更改_[更改]/shelved.patch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/shelf/在变基之前未提交的更改_[更改]1/shelved.patch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-common/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-core-service/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-core-service/src/main/java/com/luckycommunity/community_service/CommunityServiceApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-core-service/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/target/classes/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/target/classes/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-mq-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-parameter/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-parameter/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-parameter/target/classes/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/resources/application.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-repeat-execute-limit-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/community-redisson-framework/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/community_common/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DBNavigator.Project.Workspace.Settings">
+    <assistant-settings>
+      <credential-settings>
+        <credentials />
+      </credential-settings>
+      <profile-settings>
+        <profiles />
+      </profile-settings>
+      <mcp-server-settings>
+        <workspace-integration value="false" />
+        <mcp-servers />
+        <mcp-tool-approvals />
+      </mcp-server-settings>
+    </assistant-settings>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand />
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="member1" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="localRepository" value="$PROJECT_DIR$/../apache-maven-3.9.10/maven-repository" />
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+        <option name="userSettingsFile" value="$PROJECT_DIR$/../apache-maven-3.9.10/conf/settings.xml" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="3IzI3kKGh9K35ZYXXwUbyP1W98X" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Maven.community-service [clean].executor": "Run",
+    "Maven.community-service [validate].executor": "Run",
+    "Maven.lucky_community [clean].executor": "Run",
+    "Maven.lucky_community [validate].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/lucky/Desktop/lucky_community",
+    "project.structure.last.edited": "模块",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "MavenSettings"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/community_mq_framework/community_common_framework/src/main" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/community_mq_framework" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="" />
+      <created>1751626372985</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1751626372985</updated>
+    </task>
+    <task id="LOCAL-00001" summary="初始化项目">
+      <option name="closed" value="true" />
+      <created>1788762260181</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1788762260181</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="初始化项目" />
+    <option name="LAST_COMMIT_MESSAGE" value="初始化项目" />
+  </component>
+</project>
