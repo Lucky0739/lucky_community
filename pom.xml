@@ -11,12 +11,12 @@
     <description>社区平台</description>
 
     <modules>
-        <module>community-common</module>
-        <module>community-parameter</module>
-        <module>community-mq-framework</module>
-        <module>community-core-service</module>
-        <module>community-redis-tool-framework</module>
-        <module>community-redisson-framework</module>
+        <module>lucky-common</module>
+        <module>lucky-parameter</module>
+        <module>lucky-mq-framework</module>
+        <module>lucky-core-service</module>
+        <module>lucky-redis-tool-framework</module>
+        <module>lucky-redisson-framework</module>
     </modules>
 
     <properties>
@@ -55,6 +55,7 @@
         <activation.version>1.1.1</activation.version>
         <aviator.version>5.4.3</aviator.version>
         <sa-token.version>1.43.0</sa-token.version>
+        <lombok.version>1.18.46</lombok.version>
     </properties>
 
     <dependencies>
@@ -96,6 +97,14 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.sourceEncoding}</encoding>
+                    <!-- JDK 23+ 默认不再从 classpath 隐式发现注解处理器，需显式声明 lombok -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>

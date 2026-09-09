@@ -38,6 +38,24 @@
     <file url="file://$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/community-redisson-framework/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/community-redisson-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-core-service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-mq-framework/lucky-mq-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-mq-framework/lucky-mq-consumer-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-mq-framework/lucky-mq-producer-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-mq-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-parameter/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-rate-limit-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redis-tool-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-bloom-filter-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-redisson-common-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-repeat-execute-limit-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-service-lock-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/lucky-service-delay-queue-framework/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/lucky-redisson-framework/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
     <file url="file:///src/main/java" charset="UTF-8" />

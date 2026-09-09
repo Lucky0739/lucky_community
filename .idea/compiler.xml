@@ -6,24 +6,50 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="community-mq-consumer-framework" />
-        <module name="community-parameter" />
-        <module name="community-mq-producer-framework" />
-        <module name="community-service-delay-queue-framework" />
-        <module name="community-core-service" />
-        <module name="community-redisson-common-framework" />
-        <module name="community-redis-rate-limit-framework" />
-        <module name="community-common" />
-        <module name="community-redis-framework" />
-        <module name="community-mq-common-framework" />
-        <module name="community-redis-common-framework" />
-        <module name="community-repeat-execute-limit-framework" />
-        <module name="community-service-lock-frame" />
-        <module name="community-bloom-filter-framework" />
+      </profile>
+      <profile name="Annotation profile for lucky_community" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../apache-maven-3.9.10/maven-repository/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+        </processorPath>
+        <module name="lucky-bloom-filter-framework" />
+        <module name="lucky-redis-common-framework" />
+        <module name="lucky-mq-consumer-framework" />
+        <module name="lucky-redis-rate-limit-framework" />
+        <module name="lucky-mq-producer-framework" />
+        <module name="lucky-common" />
+        <module name="lucky-service-lock-framework" />
+        <module name="lucky-redisson-common-framework" />
+        <module name="lucky-redis-framework" />
+        <module name="lucky-mq-common-framework" />
+        <module name="lucky-repeat-execute-limit-framework" />
+        <module name="lucky-service-delay-queue-framework" />
+        <module name="lucky-core-service" />
+        <module name="lucky-parameter" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="community-bloom-filter-framework" target="17" />
+      <module name="community-common" target="17" />
+      <module name="community-core-service" target="17" />
+      <module name="community-mq-common-framework" target="17" />
+      <module name="community-mq-consumer-framework" target="17" />
+      <module name="community-mq-framework" target="17" />
+      <module name="community-mq-producer-framework" target="17" />
+      <module name="community-parameter" target="17" />
       <module name="community-rate-limit-framework" target="17" />
+      <module name="community-redis-common-framework" target="17" />
+      <module name="community-redis-framework" target="17" />
+      <module name="community-redis-rate-limit-framework" target="17" />
+      <module name="community-redis-tool-framework" target="17" />
+      <module name="community-redisson-common-framework" target="17" />
+      <module name="community-redisson-framework" target="17" />
+      <module name="community-redisson-service-framework" target="17" />
+      <module name="community-repeat-execute-limit-framework" target="17" />
+      <module name="community-service-delay-queue-framework" target="17" />
+      <module name="community-service-lock-frame" target="17" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">

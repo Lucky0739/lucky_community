@@ -4,49 +4,40 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="初始化项目">
-      <change afterPath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/___.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/___1.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/在变基之前未提交的更改_[更改]/shelved.patch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/shelf/在变基之前未提交的更改_[更改]1/shelved.patch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-common/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-core-service/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-core-service/src/main/java/com/luckycommunity/community_service/CommunityServiceApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-core-service/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/target/classes/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/target/classes/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-mq-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-parameter/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-parameter/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-parameter/target/classes/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redis-tool-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-repeat-execute-limit-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/community-redisson-framework/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/community_common/pom.xml" beforeDir="false" />
+    <list default="true" id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="项目脚手架搭建">
+      <change afterPath="$PROJECT_DIR$/user.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dbnavigator.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-common/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-core-service/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-core-service/src/main/java/com/luckycommunity/community_service/CommunityServiceApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-core-service/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/target/classes/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/target/classes/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-mq-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-parameter/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-parameter/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-parameter/target/classes/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-repeat-execute-limit-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/community-redisson-framework/pom.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -124,6 +115,8 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Spring Boot.CommunityServiceApplication (1).executor": "Run",
+    "Spring Boot.CommunityServiceApplication.executor": "Run",
     "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/lucky/Desktop/lucky_community",
@@ -140,6 +133,27 @@
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/community_mq_framework" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="CommunityServiceApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="lucky-core-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.lucky.core.CommunityServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.lucky.core.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.CommunityServiceApplication (1)" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -164,11 +178,20 @@
       <option name="project" value="LOCAL" />
       <updated>1788762260181</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="项目脚手架搭建">
+      <option name="closed" value="true" />
+      <created>1788835333045</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1788835333045</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="初始化项目" />
-    <option name="LAST_COMMIT_MESSAGE" value="初始化项目" />
+    <MESSAGE value="项目脚手架搭建" />
+    <option name="LAST_COMMIT_MESSAGE" value="项目脚手架搭建" />
   </component>
 </project>
