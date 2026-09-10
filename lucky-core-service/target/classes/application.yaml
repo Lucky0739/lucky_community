@@ -5,7 +5,7 @@ spring:
   # 数据源 —— 对应根目录 docker-compose.yml 启动的 MySQL(端口 3308)
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3308/community?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3308/community?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: root
     password: root
     hikari:
@@ -14,6 +14,18 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+
+  # Redis —— 对应根目录 docker-compose.yml 启动的 Redis(host 端口 6380)
+  data:
+    redis:
+      host: localhost
+      port: 6380
+      # 密码为空；若开启认证可配 password
+      # password:
+
+# 服务端口
+server:
+  port: 8123
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -32,3 +44,14 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# JWT 双 Token 配置
+jwt:
+  # HS256 签名密钥(生产环境务必替换并通过环境变量注入)
+  secret: ${JWT_SECRET:lucky-community-dev-secret-key-change-me-0123456789}
+  # 短 token(访问令牌)有效期，单位秒；前端放内存
+  access-expire: ${JWT_ACCESS_EXPIRE:1800}
+  # 长 token(刷新令牌)有效期，单位秒；写入 HttpOnly Cookie
+  refresh-expire: ${JWT_REFRESH_EXPIRE:604800}
+  # refresh Cookie 是否仅 HTTPS 发送；本地 http 调试为 false，生产环境必须 true
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
