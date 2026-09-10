@@ -40,12 +40,6 @@ public class UserInfo {
     /** 生日 */
     private LocalDate birthday;
 
-    /** 积分 */
-    private Integer credits;
-
-    /** 会员级别，0~9级,0代表未开通会员 */
-    private Integer level;
-
     /** 创建时间 */
     private LocalDateTime createTime;
 
