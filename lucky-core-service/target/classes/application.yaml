@@ -2,6 +2,12 @@ spring:
   application:
     name: lucky-core-service
 
+  # 默认激活 local profile —— 从 application-local.yaml 读取本地开发密钥(该文件已 gitignore)
+  # 生产部署必须用 SPRING_PROFILES_ACTIVE=prod 覆盖：此时 local 不再激活，
+  # application-local.yaml 不加载，密钥只能由环境变量 JWT_SECRET 注入，缺了就启动失败。
+  profiles:
+    default: local
+
   # 数据源 —— 对应根目录 docker-compose.yml 启动的 MySQL(端口 3308)
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -47,11 +53,21 @@ mybatis-plus:
 
 # JWT 双 Token 配置
 jwt:
-  # HS256 签名密钥(生产环境务必替换并通过环境变量注入)
-  secret: ${JWT_SECRET:lucky-community-dev-secret-key-change-me-0123456789}
+  # HS256 签名密钥：无默认值，必须由环境变量注入；缺失时应用启动失败(见 JwtUtil#validateSecret)
+  # 本地开发：export JWT_SECRET="$(openssl rand -base64 48)"
+  secret: ${JWT_SECRET:}
   # 短 token(访问令牌)有效期，单位秒；前端放内存
   access-expire: ${JWT_ACCESS_EXPIRE:1800}
   # 长 token(刷新令牌)有效期，单位秒；写入 HttpOnly Cookie
   refresh-expire: ${JWT_REFRESH_EXPIRE:604800}
   # refresh Cookie 是否仅 HTTPS 发送；本地 http 调试为 false，生产环境必须 true
   cookie-secure: ${JWT_COOKIE_SECURE:false}
+  # 轮换宽限期，单位秒：旧 refresh 轮换后保留这段时间以吸收并发/重复刷新
+  # 窗口内重复使用只补发 access(不发新 refresh)；窗口外才判定为可疑复用
+  refresh-grace: ${JWT_REFRESH_GRACE:60}
+
+# 跨域配置
+cors:
+  # 允许的前端来源，逗号分隔，必须写全 scheme://host:port
+  # 不能配成 * ：refresh Cookie 依赖 allowCredentials(true)，Spring 会直接启动报错
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}

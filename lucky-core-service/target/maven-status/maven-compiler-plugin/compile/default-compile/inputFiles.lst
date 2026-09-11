@@ -9,7 +9,9 @@
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/CommunityServiceApplication.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/entity/UserPhone.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/utils/JwtUtil.java
+/Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/service/TokenIssuer.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/config/PasswordConfig.java
+/Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/dto/RefreshResult.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/mapper/UserInfoMapper.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/service/TokenRedisService.java
 /Users/lucky/Desktop/lucky_community/lucky-core-service/src/main/java/com/lucky/core/annotation/AuthRequired.java

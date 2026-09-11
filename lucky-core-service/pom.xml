@@ -82,6 +82,12 @@
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
+        <!-- Redis 工具封装（RedisKeyManage 等） -->
+        <dependency>
+            <groupId>com.luckyCommunity</groupId>
+            <artifactId>lucky-redis-framework</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>com.luckyCommunity</groupId>
             <artifactId>lucky-parameter</artifactId>

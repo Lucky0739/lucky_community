@@ -5,22 +5,17 @@ import com.lucky.constant.Constant;
 import com.lucky.core.annotation.AuthRequired;
 import com.lucky.core.cookie.RefreshCookieUtil;
 import com.lucky.core.dto.LoginDTO;
+import com.lucky.core.dto.RefreshResult;
 import com.lucky.core.dto.RegisterDTO;
-import com.lucky.core.dto.TokenDTO;
 import com.lucky.core.service.UserService;
 import com.lucky.core.utils.UserContext;
+import com.lucky.core.vo.LoginVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -37,7 +32,7 @@ public class UserController {
     private UserService userService;
 
     /**
-     * 注册：手机号 + 密码，密码服务端以 BCrypt 加密后落库
+     * 注册：手机号 + 密码，密码服务端以 Bcrypt 加密后落库
      */
     @PostMapping("/register")
     public Result<String> register(@RequestBody @Valid RegisterDTO registerDTO) {
@@ -51,25 +46,29 @@ public class UserController {
      * 长 token(refresh)：写入 HttpOnly Cookie，用于过期后静默续期
      */
     @PostMapping
-    public Result<String> login(@RequestBody LoginDTO loginDTO, HttpServletResponse response) {
-        TokenDTO tokenDTO = userService.login(loginDTO);
-        RefreshCookieUtil.write(response, tokenDTO.getRefreshToken(), refreshExpireSeconds, cookieSecure);
-        return Result.success(tokenDTO.getAccessToken());
+    public Result<LoginVO> login(@RequestBody LoginDTO loginDTO, HttpServletResponse response) {
+        LoginVO loginVO = userService.login(loginDTO);
+        RefreshCookieUtil.write(response, loginVO.getRefreshToken(), refreshExpireSeconds, cookieSecure);
+        return Result.success(loginVO);
     }
 
     /**
-     * 刷新：用 HttpOnly Cookie 里的 refresh token 换发新的一对 access token
+     * 刷新：用 HttpOnly Cookie 里的 refresh token 换发新的 access token
+     * 正常轮换会同时下发新的 refresh 并写回 Cookie；并发/重复刷新走宽限路径，
+     * 只补一个 access 且<b>不</b>改写 Cookie（避免覆盖别处刚轮换出的新会话）
      */
-    @GetMapping("/refresh")
+    @PostMapping("/refresh")
     public Result<String> refresh(@CookieValue(value = Constant.REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
                                   HttpServletResponse response) {
-        TokenDTO tokenDTO = userService.refreshAccessToken(refreshToken);
-        // 轮换后的新 refresh 写回 Cookie，前端拿到新 access
-        RefreshCookieUtil.write(response, tokenDTO.getRefreshToken(), refreshExpireSeconds, cookieSecure);
-        return Result.success(tokenDTO.getAccessToken());
+        RefreshResult result = userService.refreshAccessToken(refreshToken);
+        if (result.rotated()) {
+            RefreshCookieUtil.write(response, result.newRefreshToken(), refreshExpireSeconds, cookieSecure);
+        }
+        return Result.success(result.accessToken());
     }
     /**
-     * 登出：拉黑当前 access + 清空 refresh 会话，并清除 Cookie
+     * 登出：清空该用户全部会话（access 与 refresh 一并即时失效）并清除 Cookie
+     * 注意是全局语义：其他设备也会被一起登出
      */
     @PostMapping("/logout")
     public Result<String> logout(@RequestHeader(value = "Authorization", required = false) String authorization,
