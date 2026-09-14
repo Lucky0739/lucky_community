@@ -3,25 +3,31 @@ package com.lucky.core.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lucky.core.dto.LoginDTO;
+import com.lucky.enums.RoleType;
+import com.lucky.core.dto.user.AppointBarAdminDTO;
+import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
-import com.lucky.core.dto.RegisterDTO;
+import com.lucky.core.dto.user.RegisterDTO;
 import com.lucky.core.dto.TokenDTO;
+import com.lucky.core.entity.BarManager;
 import com.lucky.core.entity.Role;
 import com.lucky.core.entity.User;
 import com.lucky.core.entity.UserInfo;
 import com.lucky.core.entity.UserPhone;
 import com.lucky.core.entity.UserRole;
+import com.lucky.core.mapper.BarManagerMapper;
 import com.lucky.core.mapper.RoleMapper;
 import com.lucky.core.mapper.UserInfoMapper;
 import com.lucky.core.mapper.UserMapper;
 import com.lucky.core.mapper.UserPhoneMapper;
 import com.lucky.core.mapper.UserRoleMapper;
-import com.lucky.core.vo.LoginVO;
+import com.lucky.core.service.LoginAttemptService;
 import com.lucky.core.service.TokenIssuer;
 import com.lucky.core.service.TokenRedisService;
 import com.lucky.core.service.UserService;
 import com.lucky.core.utils.JwtUtil;
+import com.lucky.core.vo.LoginVO;
+import com.lucky.core.vo.RoleVO;
 import com.lucky.exception.BusinessException;
 import com.lucky.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +37,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
-
-    /** 默认角色：普通用户(tb_role.id) */
-    private static final Long DEFAULT_ROLE_ID = 1L;
 
     /** 并发轮换时，落败方等待抢占者写入新 jti 的最长时间(毫秒) */
     private static final long ROTATION_WAIT_MILLIS = 500;
@@ -49,10 +54,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final TokenIssuer tokenIssuer;
     private final PasswordEncoder passwordEncoder;
     private final TokenRedisService tokenRedisService;
+    private final LoginAttemptService loginAttemptService;
     private final UserInfoMapper userInfoMapper;
     private final UserPhoneMapper userPhoneMapper;
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
+    private final BarManagerMapper barManagerMapper;
 
     @Override
     // 注册跨 4 张表，加事务保证要么全成功、要么全回滚
@@ -92,56 +99,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         userPhone.setPhone(registerDTO.getPhone());
         userPhoneMapper.insert(userPhone);
 
-        // 5. 默认绑定普通用户角色(tb_role.role_code = USER, id = 1)
+        // 5. 默认绑定普通吧友角色：按 role_code 查，避免角色 id 调整后误绑高权限角色
+        Role defaultRole = roleMapper.selectOne(
+                new LambdaQueryWrapper<Role>().eq(Role::getRoleCode, RoleType.NORMAL_USER.getCode()));
+        if (defaultRole == null) {
+            throw new BusinessException("默认角色未配置");
+        }
         UserRole userRole = new UserRole();
         userRole.setId(IdWorker.getId());
         userRole.setUserId(id);
-        userRole.setRoleId(DEFAULT_ROLE_ID);
+        userRole.setRoleId(defaultRole.getId());
         userRoleMapper.insert(userRole);
     }
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
+        // 0. 防刷：失败次数超限直接拒绝(在查库/验密之前拦截，顺带省掉 BCrypt 开销)
+        if (loginAttemptService.isBlocked(loginDTO.getPhone())) {
+            throw new BusinessException("登录失败次数过多，请稍后再试");
+        }
         // 1. 按手机号查用户
         User user = lambdaQuery().eq(User::getPhone, loginDTO.getPhone()).one();
         // 账号不存在与密码错误统一提示，避免暴露用户是否存在
         // 密码以 Bcrypt 存储，用 matches 比对
         if (user == null || user.getPassword() == null
                 || !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            loginAttemptService.recordFailure(loginDTO.getPhone());
             throw new BusinessException("账号或密码错误");
         }
+        // 登录成功：清空失败计数
+        loginAttemptService.clear(loginDTO.getPhone());
         // 2. 签发双 Token 并登记会话状态(短 token 返回前端，长 token 由 Controller 写 Cookie)
         TokenDTO tokens = tokenIssuer.issuePair(user.getId()).tokens();
-        // 3. 查用户角色，角色身份随登录一并返回(前端据此展示/路由)
-        Role role = resolveRole(user.getId());
+        // 3. 查用户全部角色，角色身份随登录一并返回(前端据此展示/路由)
+        List<Role> roles = resolveRoles(user.getId());
         // 4. 组装登录返回体
-        LoginVO vo = new LoginVO();
-        vo.setUserId(user.getId());
-        vo.setPhone(user.getPhone());
-        vo.setNickName(user.getNickName());
-        vo.setIcon(user.getIcon());
-        vo.setAccessToken(tokens.getAccessToken());
-        vo.setRefreshToken(tokens.getRefreshToken());
-        if (role != null) {
-            vo.setRoleCode(role.getRoleCode());
-            vo.setRoleName(role.getRoleName());
-        }
-        return vo;
+        LoginVO loginvo = new LoginVO();
+        loginvo.setUserId(user.getId());
+        loginvo.setPhone(user.getPhone());
+        loginvo.setNickName(user.getNickName());
+        loginvo.setIcon(user.getIcon());
+        loginvo.setAccessToken(tokens.getAccessToken());
+        loginvo.setRefreshToken(tokens.getRefreshToken());
+        loginvo.setRoles(roles.stream()
+                .map(r -> new RoleVO(r.getId(), r.getRoleCode(), r.getRoleName()))
+                .toList());
+        return loginvo;
     }
 
     /**
-     * 查用户角色：tb_user_role 关联 tb_role，取角色编码与名称
-     * <p>当前一人一角色(注册默认普通用户)，后续扩展多角色时可改为列表返回
+     * 查用户全部角色：tb_user_role 关联 tb_role，一次取回该用户绑定的所有身份
+     * <p>一个用户可同时拥有多个角色(如 普通用户 + 商家)，故返回列表而非单条
      *
-     * @return 角色；未绑定角色时返回 null
+     * @return 角色列表；未绑定任何角色时返回空列表
      */
-    private Role resolveRole(Long userId) {
-        UserRole userRole = userRoleMapper.selectOne(
+    private List<Role> resolveRoles(Long userId) {
+        List<UserRole> userRoles = userRoleMapper.selectList(
                 new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
-        if (userRole == null) {
-            return null;
+        if (userRoles.isEmpty()) {
+            return List.of();
         }
-        return roleMapper.selectById(userRole.getRoleId());
+        List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).toList();
+        return roleMapper.selectBatchIds(roleIds);
     }
 
     @Override
@@ -151,7 +170,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (payload == null) {
             throw new UnauthorizedException("登录已过期，请重新登录");
         }
-
         // 2. 当前会话 → 抢占轮换权。并发请求都会先通过上面/这里的校验，
         //    没有抢占就会各自轮换出两个会话
         if (tokenRedisService.isRefreshSessionValid(payload.userId(), payload.jti())) {
@@ -212,6 +230,62 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public void kickOut(Long userId) {
         // 踢下线(封号/改密等场景)：access 白名单 + refresh 会话一并清空，两者都即时生效
         tokenRedisService.kickOut(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto) {
+        // 1. 校验任命人必须是平台管理员
+        if (!hasRole(grantUserId)) {
+            throw new BusinessException("仅平台管理员可任命吧务");
+        }
+        // 2. 校验被任命用户存在
+        if (getById(dto.getUserId()) == null) {
+            throw new BusinessException("被任命用户不存在");
+        }
+        // 3. 写入任命记录(uk_bar_user 唯一索引兜底：同一用户在同一个吧最多一条吧务身份)
+        BarManager barManager = new BarManager();
+        barManager.setBarId(dto.getBarId());
+        barManager.setUserId(dto.getUserId());
+        barManager.setGrantUserId(grantUserId);
+        barManager.setStatus(BarManager.STATUS_ACTIVE);
+        try {
+            barManagerMapper.insert(barManager);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException("该用户已是本吧吧务");
+        }
+        // 4. 给目标用户绑定 BAR_ADMIN 角色(幂等：已有则跳过)
+        bindRole(dto.getUserId());
+    }
+
+    /**
+     * 判断用户是否拥有指定角色(按角色编码)
+     */
+    private boolean hasRole(Long userId) {
+        return resolveRoles(userId).stream()
+                .anyMatch(r -> RoleType.PLATFORM_ADMIN.getCode().equals(r.getRoleCode()));
+    }
+
+    /**
+     * 给用户绑定角色(幂等：已绑定则跳过)
+     */
+    private void bindRole(Long userId) {
+        Role role = roleMapper.selectOne(
+                new LambdaQueryWrapper<Role>().eq(Role::getRoleCode, RoleType.BAR_ADMIN.getCode()));
+        if (role == null) {
+            throw new BusinessException("角色未配置：" + RoleType.BAR_ADMIN.getCode());
+        }
+        boolean exists = userRoleMapper.selectCount(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getUserId, userId)
+                .eq(UserRole::getRoleId, role.getId())) > 0;
+        if (exists) {
+            return;
+        }
+        UserRole userRole = new UserRole();
+        userRole.setId(IdWorker.getId());
+        userRole.setUserId(userId);
+        userRole.setRoleId(role.getId());
+        userRoleMapper.insert(userRole);
     }
 
     /**

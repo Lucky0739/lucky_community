@@ -1,4 +1,4 @@
-package com.lucky.core.dto;
+package com.lucky.core.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

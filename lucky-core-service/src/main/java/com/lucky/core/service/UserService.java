@@ -1,8 +1,9 @@
 package com.lucky.core.service;
 
-import com.lucky.core.dto.LoginDTO;
+import com.lucky.core.dto.user.AppointBarAdminDTO;
+import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
-import com.lucky.core.dto.RegisterDTO;
+import com.lucky.core.dto.user.RegisterDTO;
 import com.lucky.core.vo.LoginVO;
 
 public interface UserService {
@@ -45,4 +46,13 @@ public interface UserService {
      * 踢下线：清空指定用户的全部会话
      */
     void kickOut(Long userId);
+
+    /**
+     * 平台管理员任命吧务：写入任命记录并给目标用户绑定 BAR_ADMIN 角色
+     * <p>仅平台管理员可调用；同一用户在同一个吧最多一条吧务身份(唯一索引兜底)
+     *
+     * @param grantUserId 任命人(当前登录的平台管理员)
+     * @param dto         贴吧ID + 被任命用户ID
+     */
+    void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto);
 }

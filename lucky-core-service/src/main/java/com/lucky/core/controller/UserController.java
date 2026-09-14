@@ -4,9 +4,10 @@ import com.lucky.common.Result;
 import com.lucky.constant.Constant;
 import com.lucky.core.annotation.AuthRequired;
 import com.lucky.core.cookie.RefreshCookieUtil;
-import com.lucky.core.dto.LoginDTO;
+import com.lucky.core.dto.user.AppointBarAdminDTO;
+import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
-import com.lucky.core.dto.RegisterDTO;
+import com.lucky.core.dto.user.RegisterDTO;
 import com.lucky.core.service.UserService;
 import com.lucky.core.utils.UserContext;
 import com.lucky.core.vo.LoginVO;
@@ -89,5 +90,15 @@ public class UserController {
     @GetMapping("/me")
     public Result<Long> me() {
         return Result.success(UserContext.getUserId());
+    }
+
+    /**
+     * 平台管理员任命吧务：写入任命记录并给目标用户绑定 BAR_ADMIN 角色
+     */
+    @AuthRequired
+    @PostMapping("/bar-admin/appoint")
+    public Result<String> appointBarAdmin(@RequestBody @Valid AppointBarAdminDTO dto) {
+        userService.appointBarAdmin(UserContext.getUserId(), dto);
+        return Result.success();
     }
 }

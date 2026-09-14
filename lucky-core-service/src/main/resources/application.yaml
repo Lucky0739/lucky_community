@@ -66,6 +66,13 @@ jwt:
   # 窗口内重复使用只补发 access(不发新 refresh)；窗口外才判定为可疑复用
   refresh-grace: ${JWT_REFRESH_GRACE:60}
 
+# 登录防刷配置
+login:
+  # 统计窗口内最大失败次数，超过即锁定该手机号
+  max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
+  # 统计窗口时长，单位秒
+  fail-window-seconds: ${LOGIN_FAIL_WINDOW_SECONDS:900}
+
 # 跨域配置
 cors:
   # 允许的前端来源，逗号分隔，必须写全 scheme://host:port

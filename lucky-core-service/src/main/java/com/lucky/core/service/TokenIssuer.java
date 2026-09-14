@@ -23,7 +23,6 @@ public class TokenIssuer {
 
     /**
      * 签发一对双 Token 并完成登记：refresh 建会话（jti -> userId），access jti 进白名单
-     *
      * @return 新的一对 token 及各自 jti
      */
     public JwtUtil.IssuedTokens issuePair(Long userId) {

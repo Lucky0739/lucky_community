@@ -33,7 +33,7 @@ public class TokenRedisService {
     // ---------------------------------------------------------------- access 白名单
 
     /**
-     * 登记一个已签发的 access jti
+     * 登记一个已签发的 access jti（加入白名单）
      * <p>TTL 设为 access 有效期。注意这里每次都刷新 TTL，理论上会让旧 jti 最多多留一个
      * access 有效期；但 token 自身的 exp 才是有效性的最终依据（见 JwtUtil#parse 的时效校验），
      * 所以多留的那段是不可达的，仅为内存占用，无需额外清理。
@@ -46,7 +46,6 @@ public class TokenRedisService {
         stringRedisTemplate.opsForSet().add(key, accessJti);
         stringRedisTemplate.expire(key, accessExpireSeconds, TimeUnit.SECONDS);
     }
-
     /** 该 access 是否仍在该用户的白名单里（不在 = 未签发/已过期清理/已被踢下线） */
     public boolean isAccessWhitelisted(Long userId, String accessJti) {
         return accessJti != null && Boolean.TRUE.equals(stringRedisTemplate.opsForSet()
