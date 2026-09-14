@@ -16,7 +16,6 @@
 
     <modules>
         <module>lucky-redis-rate-limit-framework</module>
-        <module>lucky-redis-common-framework</module>
         <module>lucky-redis-framework</module>
     </modules>
 

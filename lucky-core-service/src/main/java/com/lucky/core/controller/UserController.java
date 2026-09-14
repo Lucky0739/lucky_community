@@ -8,6 +8,8 @@ import com.lucky.core.dto.user.AppointBarAdminDTO;
 import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
 import com.lucky.core.dto.user.RegisterDTO;
+import com.lucky.core.dto.user.UpdateProfileDTO;
+import com.lucky.core.service.FileService;
 import com.lucky.core.service.UserService;
 import com.lucky.core.utils.UserContext;
 import com.lucky.core.vo.LoginVO;
@@ -17,6 +19,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
@@ -31,6 +34,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private FileService fileService;
 
     /**
      * 注册：手机号 + 密码，密码服务端以 Bcrypt 加密后落库
@@ -101,4 +107,25 @@ public class UserController {
         userService.appointBarAdmin(UserContext.getUserId(), dto);
         return Result.success();
     }
+
+    /**
+     * 上传头像：文件存 MinIO，返回可访问 URL
+     */
+    @AuthRequired
+    @PostMapping("/avatar")
+    public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return Result.success(fileService.uploadImage(file, "avatar"));
+    }
+
+    /**
+     * 编辑个人资料：昵称/头像/城市/介绍/性别/生日，字段为空表示不修改
+     */
+    @AuthRequired
+    @PutMapping("/profile")
+    public Result<String> updateProfile(@RequestBody @Valid UpdateProfileDTO dto) {
+        userService.updateProfile(UserContext.getUserId(), dto);
+        return Result.success();
+    }
+
+
 }

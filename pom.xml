@@ -24,7 +24,7 @@
         <java.version>17</java.version>
         <project.sourceEncoding>UTF-8</project.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>4.0.8</spring-boot.version>
+        <spring-boot.version>3.5.4</spring-boot.version>
         <fastjson.version>1.2.83</fastjson.version>
         <oshi-core.version>6.2.2</oshi-core.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>

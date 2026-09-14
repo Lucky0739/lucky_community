@@ -37,11 +37,6 @@
             <version>${revision}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.luckyCommunity</groupId>
-            <artifactId>lucky-redis-common-framework</artifactId>
-            <version>${revision}</version>
-        </dependency>
     </dependencies>
 
 </project>

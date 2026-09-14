@@ -7,8 +7,6 @@ CREATE TABLE `tb_user_info` (
                                 `followee` int unsigned DEFAULT '0' COMMENT '关注的人的数量',
                                 `gender` tinyint unsigned DEFAULT '0' COMMENT '性别，0：男，1：女',
                                 `birthday` date DEFAULT NULL COMMENT '生日',
-                                `credits` int unsigned DEFAULT '0' COMMENT '积分',
-                                `level` tinyint unsigned DEFAULT '0' COMMENT '会员级别，0~9级,0代表未开通会员',
                                 `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                                 `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                                 PRIMARY KEY (`id`) USING BTREE,
@@ -59,8 +57,37 @@ CREATE TABLE `tb_user_role` (
                                 KEY `idx_role_id` (`role_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=COMPACT COMMENT='用户角色关联表';
 
+-- 贴吧管理员关联表（仅标记哪些用户是哪个吧的吧务）
+CREATE TABLE `tb_bar_manager` (
+                                  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+                                  `bar_id` bigint unsigned NOT NULL COMMENT '贴吧ID',
+                                  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+                                  `grant_user_id` bigint unsigned NOT NULL COMMENT '任命人user_id，只能是平台管理员',
+                                  `grant_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '任命时间',
+                                  `status` tinyint NOT NULL DEFAULT 1 COMMENT '1生效，0撤销',
+                                  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  PRIMARY KEY (`id`) USING BTREE,
+                                  UNIQUE KEY `uk_bar_user` (`bar_id`,`user_id`) USING BTREE COMMENT '同一用户在同一个贴吧最多一条吧务身份',
+                                  KEY `idx_bar_id` (`bar_id`),
+                                  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='贴吧吧务任命表';
+
+
 -- 初始化角色数据
 INSERT INTO `tb_role` (`id`, `role_name`, `role_code`, `description`) VALUES
-                                                                          (1, '普通用户', 'USER', '普通注册用户'),
-                                                                          (2, '商家', 'MERCHANT', '商家身份'),
-                                                                          (3, '管理员', 'ADMIN', '后台管理员');
+                                                                          (1, '普通吧友', 'NORMAL_USER', '用户注册后的默认身份'),
+                                                                          (2, '本吧吧务', 'BAR_ADMIN', '由大吧/平台管理员任命'),
+                                                                          (3, '平台官方管理员', 'PLATFORM_ADMIN', '系统后台新增，允许多个');
+
+-- 1. 插入平台管理员用户 tb_user
+INSERT INTO tb_user (id, phone, password, nick_name, icon)
+VALUES (1, '13800138000', '$2a$10$xxxx', '平台管理员', '');
+
+-- 2. 插入用户扩展信息 tb_user_info
+INSERT INTO tb_user_info (id, user_id, city, introduce, fans, followee, gender, birthday)
+VALUES (1, 1, '广州', '平台后台管理员账号', 0, 0, 0, NULL);
+
+-- 3. 绑定角色：PLATFORM_ADMIN（角色id=3）
+INSERT INTO tb_user_role (id, user_id, role_id)
+VALUES (1, 1, 3);

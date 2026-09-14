@@ -4,6 +4,7 @@ import com.lucky.core.dto.user.AppointBarAdminDTO;
 import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
 import com.lucky.core.dto.user.RegisterDTO;
+import com.lucky.core.dto.user.UpdateProfileDTO;
 import com.lucky.core.vo.LoginVO;
 
 public interface UserService {
@@ -55,4 +56,12 @@ public interface UserService {
      * @param dto         贴吧ID + 被任命用户ID
      */
     void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto);
+
+    /**
+     * 编辑个人资料：更新昵称/头像 + 扩展信息(城市/介绍/性别/生日)
+     * <p>只更新非空字段，null 表示不修改
+     *
+     * @param userId 当前登录用户
+     */
+    void updateProfile(Long userId, UpdateProfileDTO dto);
 }

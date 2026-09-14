@@ -1,6 +1,7 @@
 package com.lucky.core.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lucky.enums.RoleType;
@@ -9,6 +10,7 @@ import com.lucky.core.dto.user.LoginDTO;
 import com.lucky.core.dto.RefreshResult;
 import com.lucky.core.dto.user.RegisterDTO;
 import com.lucky.core.dto.TokenDTO;
+import com.lucky.core.dto.user.UpdateProfileDTO;
 import com.lucky.core.entity.BarManager;
 import com.lucky.core.entity.Role;
 import com.lucky.core.entity.User;
@@ -256,6 +258,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 4. 给目标用户绑定 BAR_ADMIN 角色(幂等：已有则跳过)
         bindRole(dto.getUserId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateProfile(Long userId, UpdateProfileDTO dto) {
+        // 1. 更新 tb_user：昵称/头像（非空才更新）
+        if (dto.getNickName() != null || dto.getIcon() != null) {
+            LambdaUpdateWrapper<User> uw = new LambdaUpdateWrapper<>();
+            uw.eq(User::getId, userId);
+            if (dto.getNickName() != null) {
+                uw.set(User::getNickName, dto.getNickName());
+            }
+            if (dto.getIcon() != null) {
+                uw.set(User::getIcon, dto.getIcon());
+            }
+            update(uw);
+        }
+        // 2. 更新 tb_user_info：城市/介绍/性别/生日（非空才更新）
+        if (dto.getCity() != null || dto.getIntroduce() != null
+                || dto.getGender() != null || dto.getBirthday() != null) {
+            LambdaUpdateWrapper<UserInfo> uw = new LambdaUpdateWrapper<>();
+            uw.eq(UserInfo::getUserId, userId);
+            if (dto.getCity() != null) {
+                uw.set(UserInfo::getCity, dto.getCity());
+            }
+            if (dto.getIntroduce() != null) {
+                uw.set(UserInfo::getIntroduce, dto.getIntroduce());
+            }
+            if (dto.getGender() != null) {
+                uw.set(UserInfo::getGender, dto.getGender());
+            }
+            if (dto.getBirthday() != null) {
+                uw.set(UserInfo::getBirthday, dto.getBirthday());
+            }
+            userInfoMapper.update(null, uw);
+        }
     }
 
     /**

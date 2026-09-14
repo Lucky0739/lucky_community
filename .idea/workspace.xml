@@ -4,41 +4,49 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="项目脚手架搭建">
-      <change afterPath="$PROJECT_DIR$/user.sql" afterDir="false" />
+    <list default="true" id="cb496f6b-fcd5-47c8-b851-046350e91916" name="更改" comment="任命吧务">
+      <change afterPath="$PROJECT_DIR$/.idea/.cache/.Apifox_Helper/.toolWindow.db" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-common/src/main/java/com/lucky/enums/RoleType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-common/src/main/java/com/lucky/exception/UnauthorizedException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/config/MinioConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/dto/user/UpdateProfileDTO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/service/FileService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/src/main/java/com/lucky/community/core/RedisKeyManage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dbnavigator.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-common/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-core-service/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-core-service/src/main/java/com/luckycommunity/community_service/CommunityServiceApplication.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-core-service/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-common-framework/target/classes/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-consumer-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/community-mq-producer-framework/target/classes/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-mq-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-parameter/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-parameter/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-parameter/target/classes/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-common-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/community-redis-rate-limit-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redis-tool-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-bloom-filter-framework/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-redisson-common-framework/src/main/resources/application.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-repeat-execute-limit-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/community-service-lock-frame/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-redisson-service-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/community-service-delay-queue-framework/pom.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/community-redisson-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-common/src/main/java/com/lucky/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-common/src/main/java/com/lucky/exception/GlobalExceptionHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-common/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-common/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/controller/UserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/controller/UserController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/service/UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/service/impl/UserServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/src/main/java/com/lucky/core/service/impl/UserServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/controller/UserController.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/controller/UserController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/dto/TokenDTO.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/dto/TokenDTO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/Role.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/Role.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/User.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/User.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserInfo.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserPhone.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserPhone.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserRole.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/entity/UserRole.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/interceptor/AuthInterceptor.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/interceptor/AuthInterceptor.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/TokenRedisService.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/TokenRedisService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/UserService.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/UserService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/impl/UserServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/service/impl/UserServiceImpl.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/utils/JwtUtil$Payload.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/utils/JwtUtil$Payload.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/utils/JwtUtil.class" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/classes/com/lucky/core/utils/JwtUtil.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-core-service/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-core-service/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-common-framework/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-common-framework/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-redis-tool-framework/lucky-redis-framework/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redis-tool-framework/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-redis-tool-framework/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-redisson-common-framework/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/lucky-redisson-framework/lucky-redisson-service-framework/lucky-redisson-common-framework/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user.sql" beforeDir="false" afterPath="$PROJECT_DIR$/user.sql" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +83,9 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Interface" />
         <option value="Class" />
+        <option value="Enum" />
       </list>
     </option>
   </component>
@@ -91,7 +101,6 @@
     <option name="generalSettings">
       <MavenGeneralSettings>
         <option name="localRepository" value="$PROJECT_DIR$/../apache-maven-3.9.10/maven-repository" />
-        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
         <option name="userSettingsFile" value="$PROJECT_DIR$/../apache-maven-3.9.10/conf/settings.xml" />
       </MavenGeneralSettings>
     </option>
@@ -104,28 +113,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Maven.community-service [clean].executor": "Run",
-    "Maven.community-service [validate].executor": "Run",
-    "Maven.lucky_community [clean].executor": "Run",
-    "Maven.lucky_community [validate].executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Spring Boot.CommunityServiceApplication (1).executor": "Run",
-    "Spring Boot.CommunityServiceApplication.executor": "Run",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/lucky/Desktop/lucky_community",
-    "project.structure.last.edited": "模块",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "MavenSettings"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Maven.community-service [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.community-service [validate].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.lucky_community [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.lucky_community [validate].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Spring Boot.CommunityServiceApplication (1).executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.CommunityServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/lucky/Desktop/lucky_community&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;模块&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;MavenSettings&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/community_mq_framework/community_common_framework/src/main" />
@@ -135,7 +144,7 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration name="CommunityServiceApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+    <configuration name="CommunityServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
       <module name="lucky-core-service" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.lucky.core.CommunityServiceApplication" />
@@ -151,7 +160,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Spring Boot.CommunityServiceApplication (1)" />
+        <item itemvalue="Spring Boot.CommunityServiceApplication" />
       </list>
     </recent_temporary>
   </component>
@@ -186,12 +195,66 @@
       <option name="project" value="LOCAL" />
       <updated>1788835333045</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="搭建脚手架">
+      <option name="closed" value="true" />
+      <created>1788952057421</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1788952057421</updated>
+    </task>
+    <task id="LOCAL-00004" summary="通用模块配置">
+      <option name="closed" value="true" />
+      <created>1789004797096</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1789004797096</updated>
+    </task>
+    <task id="LOCAL-00005" summary="注册登录功能初步完成">
+      <option name="closed" value="true" />
+      <created>1789004821728</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1789004821728</updated>
+    </task>
+    <task id="LOCAL-00006" summary="双token登录机制的完善">
+      <option name="closed" value="true" />
+      <created>1789017660936</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1789017660936</updated>
+    </task>
+    <task id="LOCAL-00007" summary="登录功能的完善（加上白名单）">
+      <option name="closed" value="true" />
+      <created>1789090484026</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1789090484026</updated>
+    </task>
+    <task id="LOCAL-00008" summary="任命吧务">
+      <option name="closed" value="true" />
+      <created>1789352038510</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1789352038510</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="初始化项目" />
     <MESSAGE value="项目脚手架搭建" />
-    <option name="LAST_COMMIT_MESSAGE" value="项目脚手架搭建" />
+    <MESSAGE value="搭建脚手架" />
+    <MESSAGE value="通用模块配置" />
+    <MESSAGE value="注册登录功能初步完成" />
+    <MESSAGE value="双token登录机制的完善" />
+    <MESSAGE value="登录功能的完善（加上白名单）" />
+    <MESSAGE value="任命吧务" />
+    <option name="LAST_COMMIT_MESSAGE" value="任命吧务" />
   </component>
 </project>

@@ -15,7 +15,6 @@
           <entry name="$PROJECT_DIR$/../apache-maven-3.9.10/maven-repository/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
         </processorPath>
         <module name="lucky-bloom-filter-framework" />
-        <module name="lucky-redis-common-framework" />
         <module name="lucky-mq-consumer-framework" />
         <module name="lucky-redis-rate-limit-framework" />
         <module name="lucky-mq-producer-framework" />

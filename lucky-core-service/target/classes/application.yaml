@@ -28,6 +28,11 @@ spring:
       port: 6380
       # 密码为空；若开启认证可配 password
       # password:
+  servlet:
+    multipart:
+      # 上传文件与请求体大小上限，防止恶意上传超大文件
+      max-file-size: 2MB
+      max-request-size: 2MB
 
 # 服务端口
 server:
@@ -72,6 +77,15 @@ login:
   max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
   # 统计窗口时长，单位秒
   fail-window-seconds: ${LOGIN_FAIL_WINDOW_SECONDS:900}
+
+# MinIO 对象存储
+minio:
+  # S3 API 地址(应用上传/下载走这里)
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  # 桶名，首次启动自动创建
+  bucket: ${MINIO_BUCKET:community}
 
 # 跨域配置
 cors:

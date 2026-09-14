@@ -2,10 +2,10 @@ com/lucky/core/controller/Healthy.class
 com/lucky/core/dto/TokenDTO.class
 com/lucky/core/service/LoginAttemptService.class
 com/lucky/core/service/UserService.class
-com/lucky/core/dto/AppointBarAdminDTO.class
 com/lucky/core/vo/LoginVO.class
 com/lucky/core/service/impl/UserServiceImpl.class
 com/lucky/core/interceptor/AuthInterceptor.class
+com/lucky/core/dto/user/UpdateProfileDTO.class
 com/lucky/core/utils/UserContext.class
 com/lucky/core/utils/JwtUtil.class
 com/lucky/core/controller/UserController.class
@@ -14,7 +14,6 @@ com/lucky/core/service/TokenIssuer.class
 com/lucky/core/config/WebMvcConfig.class
 com/lucky/core/config/MybatisPlusConfig.class
 com/lucky/core/mapper/RoleMapper.class
-com/lucky/core/dto/LoginDTO.class
 com/lucky/core/entity/UserPhone.class
 com/lucky/core/entity/UserInfo.class
 com/lucky/core/utils/JwtUtil$Payload.class
@@ -23,7 +22,7 @@ com/lucky/core/mapper/UserRoleMapper.class
 com/lucky/core/dto/RefreshResult.class
 com/lucky/core/entity/BarManager.class
 com/lucky/core/mapper/BarManagerMapper.class
-com/lucky/core/dto/RegisterDTO.class
+com/lucky/core/config/MinioConfig.class
 com/lucky/core/mapper/UserPhoneMapper.class
 com/lucky/core/utils/JwtUtil$IssuedTokens.class
 com/lucky/core/service/TokenRedisService.class
@@ -37,3 +36,4 @@ com/lucky/core/mapper/UserInfoMapper.class
 com/lucky/core/entity/User.class
 com/lucky/core/annotation/AuthRequired.class
 com/lucky/core/config/PasswordConfig.class
+com/lucky/core/service/FileService.class
