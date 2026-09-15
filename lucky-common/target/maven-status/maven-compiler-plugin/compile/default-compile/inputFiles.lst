@@ -1,5 +1,6 @@
 /Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/common/Result.java
 /Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/enums/RoleType.java
+/Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/common/dto/PageQueryDTO.java
 /Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/exception/UnauthorizedException.java
 /Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/common/Response.java
 /Users/lucky/Desktop/lucky_community/lucky-common/src/main/java/com/lucky/exception/BusinessException.java

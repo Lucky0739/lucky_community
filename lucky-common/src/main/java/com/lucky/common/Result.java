@@ -36,6 +36,16 @@ public class Result<T> {
         return result;
     }
 
+    /**
+     * 分页场景：业务数据 + 总条数
+     * <p>total 是总条数而非本页条数，调用方据此算总页数
+     */
+    public static <T> Result<T> success(T data, Long total) {
+        Result<T> result = success(data);
+        result.setTotal(total);
+        return result;
+    }
+
     public static <T> Result<T> fail() {
         Result<T> result = new Result<T>();
         result.setSuccess(false);
