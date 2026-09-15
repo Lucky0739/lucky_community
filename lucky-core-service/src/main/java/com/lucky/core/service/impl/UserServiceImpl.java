@@ -24,6 +24,7 @@ import com.lucky.core.mapper.UserMapper;
 import com.lucky.core.mapper.UserPhoneMapper;
 import com.lucky.core.mapper.UserRoleMapper;
 import com.lucky.core.service.LoginAttemptService;
+import com.lucky.core.service.PermissionService;
 import com.lucky.core.service.TokenIssuer;
 import com.lucky.core.service.TokenRedisService;
 import com.lucky.core.service.UserService;
@@ -57,6 +58,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final PasswordEncoder passwordEncoder;
     private final TokenRedisService tokenRedisService;
     private final LoginAttemptService loginAttemptService;
+    private final PermissionService permissionService;
     private final UserInfoMapper userInfoMapper;
     private final UserPhoneMapper userPhoneMapper;
     private final UserRoleMapper userRoleMapper;
@@ -134,7 +136,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 2. 签发双 Token 并登记会话状态(短 token 返回前端，长 token 由 Controller 写 Cookie)
         TokenDTO tokens = tokenIssuer.issuePair(user.getId()).tokens();
         // 3. 查用户全部角色，角色身份随登录一并返回(前端据此展示/路由)
-        List<Role> roles = resolveRoles(user.getId());
+        List<Role> roles = permissionService.listRoles(user.getId());
         // 4. 组装登录返回体
         LoginVO loginvo = new LoginVO();
         loginvo.setUserId(user.getId());
@@ -147,22 +149,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .map(r -> new RoleVO(r.getId(), r.getRoleCode(), r.getRoleName()))
                 .toList());
         return loginvo;
-    }
-
-    /**
-     * 查用户全部角色：tb_user_role 关联 tb_role，一次取回该用户绑定的所有身份
-     * <p>一个用户可同时拥有多个角色(如 普通用户 + 商家)，故返回列表而非单条
-     *
-     * @return 角色列表；未绑定任何角色时返回空列表
-     */
-    private List<Role> resolveRoles(Long userId) {
-        List<UserRole> userRoles = userRoleMapper.selectList(
-                new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
-        if (userRoles.isEmpty()) {
-            return List.of();
-        }
-        List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).toList();
-        return roleMapper.selectBatchIds(roleIds);
     }
 
     @Override
@@ -238,7 +224,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto) {
         // 1. 校验任命人必须是平台管理员
-        if (!hasRole(grantUserId)) {
+        if (!permissionService.isPlatformAdmin(grantUserId)) {
             throw new BusinessException("仅平台管理员可任命吧务");
         }
         // 2. 校验被任命用户存在
@@ -294,14 +280,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             userInfoMapper.update(null, uw);
         }
-    }
-
-    /**
-     * 判断用户是否拥有指定角色(按角色编码)
-     */
-    private boolean hasRole(Long userId) {
-        return resolveRoles(userId).stream()
-                .anyMatch(r -> RoleType.PLATFORM_ADMIN.getCode().equals(r.getRoleCode()));
     }
 
     /**
