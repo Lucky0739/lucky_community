@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * （与 {@link com.lucky.core.bar.entity.Bar} 同一类问题，见 post.sql 里 tb_bar 处的警告）。
  *
  * <p>{@code postId} 上有唯一键 {@code uk_post_id}，承担重跑幂等：
- * 同一个帖子重复分析走 ON DUPLICATE KEY UPDATE，不会留下两条互相矛盾的结论。
+ * 同一个帖子重复分析走 ON CONFLICT (post_id) DO UPDATE，不会留下两条互相矛盾的结论。
  */
 @Data
 @TableName("tb_post_analysis")

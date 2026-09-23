@@ -136,7 +136,6 @@ public class PostDetailCache {
         localCache.put(vo.getPostId(), entry);
         putToL2(entry);
     }
-
     /**
      * 失效 L1 + L2
      */
@@ -152,7 +151,6 @@ public class PostDetailCache {
         }
         invalidator.publishEvict(postId);
     }
-
     // ==================== 冷路径 ====================
     private PostDetailCacheEntry loadEntry(Long postId, Function<Long, PostDetailVO> loader) {
         PostDetailCacheEntry postDetailCacheEntry = getFromL2(postId);
@@ -161,7 +159,6 @@ public class PostDetailCache {
         }
         return loadWithLock(postId, loader);
     }
-
     /**
      * 双重检测锁：跨实例保证同一个帖子只有一个加载者
      */

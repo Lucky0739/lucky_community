@@ -192,7 +192,7 @@ public class PostServiceImpl implements PostService {
         postMapper.insert(post);   // MP 回填雪花ID
         // 放入布隆过滤器
         postBloomFilter.add(post.getId());
-       // registerAfterCommit(() -> aiModerationService.submit(post.getId(), post.getTitle(), post.getContent()));
+        registerAfterCommit(() -> aiModerationService.submit(post.getId(), post.getTitle(), post.getContent()));
         // 操纵postImage数据库
         for (int i = 0; i < objectNames.size(); i++) {
             PostImage postImage = new PostImage();
@@ -370,7 +370,7 @@ public class PostServiceImpl implements PostService {
         LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(query.getBarId() != null, Post::getBarId, query.getBarId())
                 .eq(query.getUserId() != null, Post::getUserId, query.getUserId())
-                // 必须显式排序：不写 ORDER BY 时 MySQL 行序不保证，翻页会重复或漏行。
+                // 必须显式排序：不写 ORDER BY 时 PostgreSQL 行序不保证，翻页会重复或漏行。
                 .orderByDesc(Post::getId);
         Integer pageNum= query.getPageNum();
         Integer pageSize= query.getPageSize();
