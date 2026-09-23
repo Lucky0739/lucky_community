@@ -1,4 +1,4 @@
-package com.lucky.core.entity;
+package com.lucky.core.user.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -8,27 +8,24 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 用户表
+ * 角色表
  */
 @Data
-@TableName("tb_user")
-public class User {
+@TableName("tb_role")
+public class Role {
 
-    /** 主键 */
+    /** 角色主键ID */
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
-    /** 手机号码 */
-    private String phone;
+    /** 角色名称 */
+    private String roleName;
 
-    /** 密码，加密存储 */
-    private String password;
+    /** 角色编码(程序判断使用) */
+    private String roleCode;
 
-    /** 昵称，默认是用户id */
-    private String nickName;
-
-    /** 人物头像 */
-    private String icon;
+    /** 角色说明 */
+    private String description;
 
     /** 创建时间 */
     private LocalDateTime createTime;
