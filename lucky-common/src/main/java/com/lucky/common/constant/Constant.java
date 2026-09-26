@@ -1,7 +1,7 @@
-package com.lucky.constant;
+package com.lucky.common.constant;
 
 /**
- * 全局常量（公共模块，各服务 import 后直接使用）
+ * 全局常量
  */
 public class Constant {
 

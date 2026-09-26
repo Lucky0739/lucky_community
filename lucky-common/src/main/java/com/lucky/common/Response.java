@@ -6,8 +6,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * 统一接口响应类（公共模块，各服务共用）
- *
- * @param <T> 业务数据类型
  */
 @Data
 @NoArgsConstructor

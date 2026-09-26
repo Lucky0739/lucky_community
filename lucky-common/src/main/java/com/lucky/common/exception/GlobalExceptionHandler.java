@@ -1,4 +1,4 @@
-package com.lucky.exception;
+package com.lucky.common.exception;
 
 import com.lucky.common.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +15,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
- * 全局异常处理：统一转成 Result 返回（依赖它的服务需扫描到 com.lucky.exception）
+ * 全局异常处理：统一转成 Result 返回（依赖它的服务需扫描到 {@code com.lucky}）
  */
 @Slf4j
 @RestControllerAdvice
@@ -30,8 +31,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 认证失效：返回真 401，客户端据此触发「刷新 token → 重放原请求」
-     * <p>必须显式声明：下面的 {@code @ExceptionHandler(Exception.class)} 会先命中，
-     * 把 {@link UnauthorizedException} 上的 {@code @ResponseStatus} 吞掉，变成 200 + success=false
      */
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Result<Void>> handleUnauthorized(UnauthorizedException e) {
@@ -39,8 +38,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 触发限流：返回真 429
+     */
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Result<Void>> handleRateLimit(RateLimitException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Result.fail(e.getMessage()));
+    }
+
+    /**
      * 路径匹配但 HTTP 方法不对（如用 GET 调 POST 接口）：返回 405 而不是 500
-     * <p>否则一个用错方法的请求会被兜底分支报成「系统错误」，掩盖真实原因
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Result<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
@@ -59,9 +65,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 查询参数校验失败（@ModelAttribute @Valid，如分页参数）
-     * <p>与上面的 {@link MethodArgumentNotValidException} 并存：后者是前者的子类，
-     * Spring 按最近类型匹配，请求体走上面、查询参数走这里，互不遮蔽。
-     * 不声明本方法的话，查询参数校验失败会掉进兜底分支报成「系统错误」，掩盖真实原因
      */
     @ExceptionHandler(BindException.class)
     public Result<Void> handleBind(BindException e) {
@@ -79,8 +82,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 上传文件超过大小限制：返回真 413
-     * <p>必须显式声明，否则会被兜底分支报成 200 +「系统错误」——用户看到的是"服务器又抽风了"，
-     * 而不是"图太大了"。Tomcat 在 body 超限时可能直接断连，这里覆盖的是 Spring 能接管的那部分
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Result<Void>> handleMaxUploadSize(MaxUploadSizeExceededException e) {
@@ -90,12 +91,21 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 其余 multipart 异常（如缺少必需的 part、part 类型不对）
+     * multipart 请求本身有问题（如 Content-Type 不是 multipart、部分被中途截断）
      */
     @ExceptionHandler(MultipartException.class)
     public Result<Void> handleMultipart(MultipartException e) {
         log.warn("multipart 请求异常", e);
         return Result.fail("上传请求格式不正确：" + e.getMessage());
+    }
+
+    /**
+     * 缺少必需的 part（如上传接口漏传 {@code file}）
+     */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public Result<Void> handleMissingPart(MissingServletRequestPartException e) {
+        log.warn("缺少必需的请求 part，requestPartName={}", e.getRequestPartName());
+        return Result.fail("缺少必需的请求参数：" + e.getRequestPartName());
     }
 
     /**
@@ -109,8 +119,6 @@ public class GlobalExceptionHandler {
 
     /**
      * Content-Type 不受支持：返回 415
-     * <p>典型场景是 multipart 里的 JSON part 漏写 {@code ;type=application/json}，
-     * 此时 Spring 找不到匹配的转换器。不声明的话同样会掉进兜底报成「系统错误」
      */
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<Result<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {

@@ -1,10 +1,9 @@
-package com.lucky.enums;
+package com.lucky.common.enums;
 
 import lombok.Getter;
 
 /**
- * 角色身份枚举（公共模块，code 与 tb_role.role_code 对应）
- * <p>VISITOR 为游客(未登录、无 db 记录)，不算真实身份；其余三种为落库角色。
+ * 角色身份枚举
  */
 @Getter
 public enum RoleType {
