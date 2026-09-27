@@ -31,8 +31,6 @@ public class CommentConstant {
 
     /**
      * 详情首屏 / 评论首页缓存的固定页大小
-     * <p>与 {@code OffsetPageQueryDTO} 默认 pageSize 对齐：{@code GET /post/{id}/view}
-     * 和默认参数的 {@code GET /comment/page} 才能命中同一份首页缓存。
      */
     public static final int FIRST_PAGE_SIZE = 10;
 }
