@@ -1,27 +1,26 @@
-package com.lucky.core.controller;
+package com.lucky.user.controller;
 
 import com.lucky.common.Result;
-import com.lucky.constant.Constant;
-import com.lucky.core.annotation.AuthRequired;
-import com.lucky.core.cookie.RefreshCookieUtil;
-import com.lucky.core.dto.user.AppointBarAdminDTO;
-import com.lucky.core.dto.user.LoginDTO;
-import com.lucky.core.dto.RefreshResult;
-import com.lucky.core.dto.user.RegisterDTO;
-import com.lucky.core.dto.user.UpdateProfileDTO;
-import com.lucky.core.service.FileService;
-import com.lucky.core.service.UserService;
-import com.lucky.core.utils.UserContext;
-import com.lucky.core.vo.LoginVO;
+import com.lucky.common.auth.UserContext;
+import com.lucky.common.auth.annotation.AuthRequired;
+import com.lucky.common.constant.Constant;
+import com.lucky.user.auth.AuthService;
+import com.lucky.user.auth.cookie.RefreshCookieUtil;
+import com.lucky.user.auth.dto.RefreshResult;
+import com.lucky.user.dto.AppointBarAdminDTO;
+import com.lucky.user.dto.LoginDTO;
+import com.lucky.user.dto.RegisterDTO;
+import com.lucky.user.dto.UpdateProfileDTO;
+import com.lucky.user.file.FileService;
+import com.lucky.user.service.UserService;
+import com.lucky.user.vo.LoginVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -34,6 +33,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AuthService authService;
 
     @Resource
     private FileService fileService;
@@ -67,7 +69,7 @@ public class UserController {
     @PostMapping("/refresh")
     public Result<String> refresh(@CookieValue(value = Constant.REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
                                   HttpServletResponse response) {
-        RefreshResult result = userService.refreshAccessToken(refreshToken);
+        RefreshResult result = authService.refreshAccessToken(refreshToken);
         if (result.rotated()) {
             RefreshCookieUtil.write(response, result.newRefreshToken(), refreshExpireSeconds, cookieSecure);
         }
@@ -84,7 +86,7 @@ public class UserController {
         String accessToken = authorization != null && authorization.startsWith("Bearer ")
                 ? authorization.substring(7) : null;
         // access 为主，失效时用 refresh 兜底，保证任何情况下都能断掉服务端凭证
-        userService.logout(accessToken, refreshToken);
+        authService.logout(accessToken, refreshToken);
         RefreshCookieUtil.clear(response, cookieSecure);
         return Result.success();
     }
@@ -114,7 +116,7 @@ public class UserController {
     @AuthRequired
     @PostMapping("/avatar")
     public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        return Result.success(fileService.uploadImage(file, "avatar"));
+        return Result.success(fileService.uploadImage(file, FileService.DIR_AVATAR));
     }
 
     /**
