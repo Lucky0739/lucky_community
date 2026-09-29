@@ -1,8 +1,5 @@
-package com.lucky.core.entity;
+package com.lucky.user.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -12,11 +9,9 @@ import java.time.LocalDateTime;
  * 用户扩展信息表
  */
 @Data
-@TableName("tb_user_info")
 public class UserInfo {
 
     /** 主键 */
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /** 用户id */

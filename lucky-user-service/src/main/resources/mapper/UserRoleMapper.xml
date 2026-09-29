@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.user.mapper.UserRoleMapper">
+
+    <insert id="insert">
+        INSERT INTO tb_user_role (id, user_id, role_id, deleted)
+        VALUES (#{id}, #{userId}, #{roleId}, 0)
+    </insert>
+
+    <select id="selectByUserId" resultType="com.lucky.user.entity.UserRole">
+        SELECT id, user_id, role_id, create_time, update_time
+        FROM tb_user_role
+        WHERE user_id = #{userId} AND deleted = 0
+    </select>
+
+    <select id="selectByUserIds" resultType="com.lucky.user.entity.UserRole">
+        SELECT id, user_id, role_id, create_time, update_time
+        FROM tb_user_role
+        WHERE deleted = 0
+          AND user_id IN
+        <foreach collection="list" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+    </select>
+
+    <select id="existsByUserIdAndRoleId" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM tb_user_role
+            WHERE user_id = #{userId} AND role_id = #{roleId} AND deleted = 0
+        )
+    </select>
+
+    <select id="existsByUserIdAndRoleCode" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM tb_user_role ur
+            JOIN tb_role r ON r.id = ur.role_id
+            WHERE ur.user_id = #{userId}
+              AND r.role_code = #{roleCode}
+              AND ur.deleted = 0
+        )
+    </select>
+
+    <delete id="deleteByUserId">
+        DELETE FROM tb_user_role WHERE user_id = #{userId}
+    </delete>
+</mapper>

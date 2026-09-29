@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.user.mapper.UserPhoneMapper">
+
+    <insert id="insert">
+        INSERT INTO tb_user_phone (id, user_id, phone)
+        VALUES (#{id}, #{userId}, #{phone})
+    </insert>
+</mapper>

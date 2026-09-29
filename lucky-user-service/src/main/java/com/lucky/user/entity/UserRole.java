@@ -1,8 +1,5 @@
-package com.lucky.core.entity;
+package com.lucky.user.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,11 +8,9 @@ import java.time.LocalDateTime;
  * 用户角色关联表
  */
 @Data
-@TableName("tb_user_role")
 public class UserRole {
 
     /** 主键ID */
-    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /** 用户ID，关联tb_user.id */

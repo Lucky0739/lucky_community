@@ -1,4 +1,4 @@
-package com.lucky.core.vo;
+package com.lucky.user.vo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;

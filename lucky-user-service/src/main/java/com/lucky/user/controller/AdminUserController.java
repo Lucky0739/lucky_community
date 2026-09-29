@@ -1,6 +1,5 @@
 package com.lucky.user.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lucky.common.Result;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
@@ -11,6 +10,7 @@ import com.lucky.user.dto.UpdateProfileDTO;
 import com.lucky.user.service.AdminUserService;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
+import com.lucky.user.vo.PageResult;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public class AdminUserController {
      */
     @GetMapping("/page")
     public Result<List<AdminUserVO>> page(@ModelAttribute @Valid AdminUserQueryDTO query) {
-        IPage<AdminUserVO> page = adminUserService.pageUsers(UserContext.getUserId(), query);
+        PageResult<AdminUserVO> page = adminUserService.pageUsers(UserContext.getUserId(), query);
         return Result.success(page.getRecords(), page.getTotal());
     }
 

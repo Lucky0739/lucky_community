@@ -1,12 +1,13 @@
-package com.lucky.core.service.impl;
+package com.lucky.user.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lucky.core.entity.Role;
-import com.lucky.core.entity.UserRole;
-import com.lucky.core.mapper.RoleMapper;
-import com.lucky.core.mapper.UserRoleMapper;
-import com.lucky.core.service.PermissionService;
-import com.lucky.enums.RoleType;
+import cn.hutool.core.util.IdUtil;
+import com.lucky.common.enums.RoleType;
+import com.lucky.common.exception.BusinessException;
+import com.lucky.user.entity.Role;
+import com.lucky.user.entity.UserRole;
+import com.lucky.user.mapper.RoleMapper;
+import com.lucky.user.mapper.UserRoleMapper;
+import com.lucky.user.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,14 +29,12 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<Role> listRoles(Long userId) {
-        List<UserRole> userRoles = userRoleMapper.selectList(
-                new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
+        List<UserRole> userRoles = userRoleMapper.selectByUserId(userId);
         if (userRoles.isEmpty()) {
             return List.of();
         }
-        // 去重后再查：同一用户理论上不会重复绑同一角色(uk_user_role 兜底)，这里只是防御
         List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).distinct().toList();
-        return roleMapper.selectBatchIds(roleIds);
+        return roleMapper.selectByIds(roleIds);
     }
 
     @Override
@@ -43,19 +42,16 @@ public class PermissionServiceImpl implements PermissionService {
         if (userIds == null || userIds.isEmpty()) {
             return Map.of();
         }
-        List<UserRole> userRoles = userRoleMapper.selectList(
-                new LambdaQueryWrapper<UserRole>().in(UserRole::getUserId, userIds));
+        List<UserRole> userRoles = userRoleMapper.selectByUserIds(List.copyOf(userIds));
         if (userRoles.isEmpty()) {
             return Map.of();
         }
         List<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).distinct().toList();
-        // 先按角色 id 建索引再组装，避免逐个用户查库
-        Map<Long, Role> roleById = roleMapper.selectBatchIds(roleIds).stream()
+        Map<Long, Role> roleById = roleMapper.selectByIds(roleIds).stream()
                 .collect(Collectors.toMap(Role::getId, Function.identity()));
         Map<Long, List<Role>> rolesByUserId = new HashMap<>();
         for (UserRole userRole : userRoles) {
             Role role = roleById.get(userRole.getRoleId());
-            // 角色被删而绑定残留时跳过，不让列表接口整个失败
             if (role != null) {
                 rolesByUserId.computeIfAbsent(userRole.getUserId(), k -> new ArrayList<>()).add(role);
             }
@@ -66,6 +62,22 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public boolean isPlatformAdmin(Long userId) {
         return userRoleMapper.existsByUserIdAndRoleCode(userId, RoleType.PLATFORM_ADMIN.getCode());
+    }
+
+    @Override
+    public void bindRoleIfAbsent(Long userId, RoleType roleType) {
+        Role role = roleMapper.selectByRoleCode(roleType.getCode());
+        if (role == null) {
+            throw new BusinessException("角色未配置：" + roleType.getCode());
+        }
+        if (userRoleMapper.existsByUserIdAndRoleId(userId, role.getId())) {
+            return;
+        }
+        UserRole userRole = new UserRole();
+        userRole.setId(IdUtil.getSnowflakeNextId());
+        userRole.setUserId(userId);
+        userRole.setRoleId(role.getId());
+        userRoleMapper.insert(userRole);
     }
 
     @Override

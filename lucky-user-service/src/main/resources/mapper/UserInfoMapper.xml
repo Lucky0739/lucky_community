@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.user.mapper.UserInfoMapper">
+
+    <insert id="insert">
+        INSERT INTO tb_user_info (id, user_id, fans, followee)
+        VALUES (#{id}, #{userId}, #{fans}, #{followee})
+    </insert>
+
+    <select id="selectByUserId" resultType="com.lucky.user.entity.UserInfo">
+        SELECT id, user_id, city, introduce, fans, followee, gender, birthday, create_time, update_time
+        FROM tb_user_info
+        WHERE user_id = #{userId}
+    </select>
+
+    <update id="updateProfile">
+        UPDATE tb_user_info
+        <set>
+            <if test="city != null">city = #{city},</if>
+            <if test="introduce != null">introduce = #{introduce},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="birthday != null">birthday = #{birthday},</if>
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+</mapper>

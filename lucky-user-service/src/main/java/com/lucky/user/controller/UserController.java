@@ -4,6 +4,7 @@ import com.lucky.common.Result;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.constant.Constant;
+import com.lucky.common.file.FileService;
 import com.lucky.user.auth.AuthService;
 import com.lucky.user.auth.cookie.RefreshCookieUtil;
 import com.lucky.user.auth.dto.RefreshResult;
@@ -11,7 +12,6 @@ import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
-import com.lucky.user.file.FileService;
 import com.lucky.user.service.UserService;
 import com.lucky.user.vo.LoginVO;
 import jakarta.annotation.Resource;
@@ -58,13 +58,12 @@ public class UserController {
     public Result<LoginVO> login(@RequestBody LoginDTO loginDTO, HttpServletResponse response) {
         LoginVO loginVO = userService.login(loginDTO);
         RefreshCookieUtil.write(response, loginVO.getRefreshToken(), refreshExpireSeconds, cookieSecure);
+        System.out.println(loginVO);
         return Result.success(loginVO);
     }
 
     /**
      * 刷新：用 HttpOnly Cookie 里的 refresh token 换发新的 access token
-     * 正常轮换会同时下发新的 refresh 并写回 Cookie；并发/重复刷新走宽限路径，
-     * 只补一个 access 且<b>不</b>改写 Cookie（避免覆盖别处刚轮换出的新会话）
      */
     @PostMapping("/refresh")
     public Result<String> refresh(@CookieValue(value = Constant.REFRESH_TOKEN_COOKIE, required = false) String refreshToken,

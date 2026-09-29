@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.user.mapper.UserMapper">
+
+    <sql id="UserColumns">
+        id, phone, password, nick_name, icon, create_time, update_time, deleted
+    </sql>
+
+    <select id="existsByPhone" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM tb_user
+            WHERE phone = #{phone} AND deleted = 0
+        )
+    </select>
+
+    <select id="selectByPhone" resultType="com.lucky.user.entity.User">
+        SELECT <include refid="UserColumns"/>
+        FROM tb_user
+        WHERE phone = #{phone} AND deleted = 0
+    </select>
+
+    <select id="selectById" resultType="com.lucky.user.entity.User">
+        SELECT <include refid="UserColumns"/>
+        FROM tb_user
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert">
+        INSERT INTO tb_user (id, phone, password, nick_name, icon, deleted)
+        VALUES (#{id}, #{phone}, #{password}, #{nickName}, #{icon}, 0)
+    </insert>
+
+    <update id="updateProfile">
+        UPDATE tb_user
+        <set>
+            <if test="nickName != null">nick_name = #{nickName},</if>
+            <if test="icon != null">icon = #{icon},</if>
+        </set>
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <sql id="Filter">
+        FROM tb_user
+        WHERE deleted = 0
+        <if test="phone != null and phone != ''">
+            AND phone LIKE #{phone} || '%'
+        </if>
+        <if test="nickName != null and nickName != ''">
+            AND nick_name LIKE '%' || #{nickName} || '%'
+        </if>
+    </sql>
+
+    <select id="countByFilter" resultType="long">
+        SELECT COUNT(*)
+        <include refid="Filter"/>
+    </select>
+
+    <select id="selectPageByFilter" resultType="com.lucky.user.entity.User">
+        SELECT <include refid="UserColumns"/>
+        <include refid="Filter"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectByIds" resultType="com.lucky.user.entity.User">
+        SELECT <include refid="UserColumns"/>
+        FROM tb_user
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="list" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+    </select>
+
+    <update id="logicalDeleteAndReleasePhone">
+        UPDATE tb_user
+        SET deleted = 1,
+            phone = NULL
+        WHERE id = #{id} AND deleted = 0
+    </update>
+</mapper>

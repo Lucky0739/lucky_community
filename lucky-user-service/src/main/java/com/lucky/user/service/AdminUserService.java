@@ -1,10 +1,11 @@
-package com.lucky.core.service;
+package com.lucky.user.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.lucky.core.dto.user.AdminUserQueryDTO;
-import com.lucky.core.dto.user.UpdateProfileDTO;
-import com.lucky.core.vo.AdminUserDetailVO;
-import com.lucky.core.vo.AdminUserVO;
+import com.lucky.user.dto.AdminUserQueryDTO;
+import com.lucky.user.dto.HandlerActionDTO;
+import com.lucky.user.dto.UpdateProfileDTO;
+import com.lucky.user.vo.AdminUserDetailVO;
+import com.lucky.user.vo.AdminUserVO;
+import com.lucky.user.vo.PageResult;
 
 import java.util.List;
 
@@ -22,12 +23,12 @@ public interface AdminUserService {
      * @param query      筛选条件，phone 前缀匹配 / nickName 模糊匹配
      * @return 分页结果；调用方取 {@code getRecords()} 作响应体、{@code getTotal()} 作总条数
      */
-    IPage<AdminUserVO> pageUsers(Long operatorId, AdminUserQueryDTO query);
+    PageResult<AdminUserVO> pageUsers(Long operatorId, AdminUserQueryDTO query);
 
     /**
      * 查用户详情：用户基本信息 + 扩展资料 + 角色
      *
-     * @throws com.lucky.exception.BusinessException 用户不存在或已被逻辑删除
+     * @throws com.lucky.common.exception.BusinessException 用户不存在或已被逻辑删除
      */
     AdminUserDetailVO getUserDetail(Long operatorId, Long userId);
 
@@ -37,7 +38,7 @@ public interface AdminUserService {
      * 手机号/密码/角色不在此接口改动
      * <p>目标用户取 {@code dto.getUserId()}；操作者身份只认 token，权限校验在 service 层完成
      *
-     * @throws com.lucky.exception.BusinessException 用户ID为空 / 用户不存在或已被逻辑删除
+     * @throws com.lucky.common.exception.BusinessException 用户ID为空 / 用户不存在或已被逻辑删除
      */
     void updateUser(Long operatorId, UpdateProfileDTO dto);
 
@@ -51,7 +52,20 @@ public interface AdminUserService {
      * 同一个 id 删两遍，第二遍会撞「已被删除」，把整批白白回滚
      *
      * @param userIds 待删除的用户ID，非空
-     * @throws com.lucky.exception.BusinessException 入参为空 / 删自己 / 任一用户不存在 / 任一是平台管理员
+     * @throws com.lucky.common.exception.BusinessException 入参为空 / 删自己 / 任一用户不存在 / 任一是平台管理员
      */
     void deleteUsers(Long operatorId, List<Long> userIds);
+
+    /**
+     * 平台管理员对一条帖子做人工处置，写入 {@code tb_post_analysis.handler_action}。
+     * <p>还没有分析行时会补一行，只填处置结论。AI 之后重跑不会盖掉这一列。
+     * <ul>
+     *   <li>未处置、警告：只记录结论</li>
+     *   <li>删帖：记录结论，并逻辑删除帖子</li>
+     *   <li>封禁：记录结论，逻辑删除帖子，再按删用户的规则封禁作者</li>
+     * </ul>
+     *
+     * @throws com.lucky.common.exception.BusinessException 非平台管理员、帖子不存在、结论不在允许取值内、封禁对象不能删
+     */
+    void reviewPost(Long operatorId, HandlerActionDTO dto);
 }

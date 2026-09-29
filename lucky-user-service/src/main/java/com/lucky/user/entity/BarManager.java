@@ -1,8 +1,5 @@
-package com.lucky.core.entity;
+package com.lucky.user.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,7 +8,6 @@ import java.time.LocalDateTime;
  * 贴吧吧务任命表
  */
 @Data
-@TableName("tb_bar_manager")
 public class BarManager {
 
     /** 任命状态：生效 */
@@ -20,7 +16,6 @@ public class BarManager {
     public static final int STATUS_REVOKED = 0;
 
     /** 主键ID(自增) */
-    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     /** 贴吧ID */

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.user.mapper.BarManagerMapper">
+
+    <insert id="insert">
+        INSERT INTO tb_bar_manager (bar_id, user_id, grant_user_id, status)
+        VALUES (#{barId}, #{userId}, #{grantUserId}, #{status})
+    </insert>
+
+    <update id="revokeByUserId">
+        UPDATE tb_bar_manager
+        SET status = 0
+        WHERE user_id = #{userId} AND status = 1
+    </update>
+</mapper>
