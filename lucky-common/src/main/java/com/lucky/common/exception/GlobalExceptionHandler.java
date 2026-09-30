@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
- * 全局异常处理：统一转成 Result 返回（依赖它的服务需扫描到 {@code com.lucky}）
+ * 全局异常处理：统一转成 Result 返回（由 {@code LuckyAutoConfiguration.Web} 自动注册）
  */
 @Slf4j
 @RestControllerAdvice

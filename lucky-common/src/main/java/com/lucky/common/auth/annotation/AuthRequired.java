@@ -1,4 +1,4 @@
-package com.lucky.core.annotation;
+package com.lucky.common.auth.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

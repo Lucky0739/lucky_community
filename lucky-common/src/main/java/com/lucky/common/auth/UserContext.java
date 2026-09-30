@@ -1,4 +1,4 @@
-package com.lucky.core.utils;
+package com.lucky.common.auth;
 
 /**
  * 当前登录用户上下文（基于 ThreadLocal，由鉴权拦截器写入/清理）

@@ -1,28 +1,22 @@
-package com.lucky.core.auth.interceptor;
+package com.lucky.common.auth.interceptor;
 
-import com.lucky.core.auth.annotation.AuthRequired;
-import com.lucky.core.auth.TokenRedisService;
-import com.lucky.core.auth.JwtUtil;
-import com.lucky.core.auth.UserContext;
+import com.lucky.common.auth.annotation.AuthRequired;
+import com.lucky.common.auth.TokenRedisService;
+import com.lucky.common.auth.JwtUtil;
+import com.lucky.common.auth.UserContext;
 import com.lucky.common.exception.UnauthorizedException;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * 鉴权拦截器：只拦标注了 @AuthRequired 的接口
- * 流程：取 Authorization: Bearer <access> → 验签 → 查白名单 → 写入 UserContext
- * <p>未通过时抛 {@link UnauthorizedException}，交由 {@code GlobalExceptionHandler} 统一转成
- * HTTP 401 + 响应体。<b>不</b>直接 {@code setStatus} 返回裸 401：那样客户端只拿得到状态码、
- * 拿不到失败原因，且与刷新路径返回的 401（带响应体）不一致，前端无法用同一套逻辑处理。
  */
 @Slf4j
-@Component
 public class AuthInterceptor implements HandlerInterceptor {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -73,8 +67,6 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         // 4. 撤销校验：用户被删除/封禁后，任何仍在外面的 token 一律拒绝
-        //    只靠第 3 步不够——刷新路径会把白名单重新写回来（见 TokenRedisService#revokeUser），
-        //    所以撤销必须在这里兜底，它是「已失效用户」的最后一道闸
         if (tokenRedisService.isUserRevoked(payload.userId())) {
             log.warn("鉴权失败：用户已被撤销(删除/封禁)，uri={}, userId={}, jti={}",
                     uri, payload.userId(), payload.jti());

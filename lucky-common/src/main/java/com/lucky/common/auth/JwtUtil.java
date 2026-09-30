@@ -1,28 +1,19 @@
-package com.lucky.core.utils;
+package com.lucky.common.auth;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTUtil;
 import cn.hutool.jwt.JWTValidator;
-import com.lucky.core.dto.TokenDTO;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
  * JWT 双 Token 签发/校验工具
- * <ul>
- *   <li>access token：短时效，返回前端放内存，随请求头携带；jti 登记进每用户白名单，可即时踢下线</li>
- *   <li>refresh token：长时效，写入 HttpOnly Cookie；会话存 Redis，支持轮换/吊销</li>
- * </ul>
- * 每个 token 都带 jti(唯一标识)，用于会话管理与白名单校验。
- * <p>本类只负责「签」和「验」，不碰 Redis；会话登记见 {@code TokenIssuer}。
  */
-@Component
 public class JwtUtil {
 
     public static final String TYPE_ACCESS = "access";
@@ -46,7 +37,6 @@ public class JwtUtil {
 
     /**
      * 轮换宽限期(秒)：旧 refresh 轮换后保留这段时间，用于吸收并发/重复刷新
-     * <p>详见 {@code UserServiceImpl#refreshAccessToken} 的抢占与宽限逻辑
      */
     @Getter
     @Value("${jwt.refresh-grace:60}")
@@ -77,19 +67,15 @@ public class JwtUtil {
 
     /**
      * 签发一对双 Token
-     * <p>直接返回生成的 jti，避免调用方为了拿 jti 再 parse 一次自己刚签出的 token
-     * （多余的一次验签，且 parse 返回 null 时会 NPE）
      */
     public IssuedTokens createTokenPair(Long userId) {
         Minted access = mint(userId, TYPE_ACCESS, accessExpire);
         Minted refresh = mint(userId, TYPE_REFRESH, refreshExpire);
-        return new IssuedTokens(
-                new TokenDTO(access.token(), refresh.token()), access.jti(), refresh.jti());
+        return new IssuedTokens(access.token(), refresh.token(), access.jti(), refresh.jti());
     }
 
     /**
      * 只签发一个 access token（不配套 refresh）
-     * <p>用于刷新宽限路径：并发/重复刷新时只补一个短期 access，不发放新的 refresh 凭证
      */
     public IssuedAccess createAccessToken(Long userId) {
         Minted access = mint(userId, TYPE_ACCESS, accessExpire);
@@ -98,10 +84,6 @@ public class JwtUtil {
 
     /**
      * 解析并校验 token（不查 Redis，只做签名/类型/时效校验）
-     *
-     * @param token        原始 token
-     * @param expectedType access / refresh
-     * @return 校验通过返回 userId + jti；否则返回 null
      */
     public Payload parse(String token, String expectedType) {
         if (token == null || token.isBlank()) {
@@ -121,7 +103,6 @@ public class JwtUtil {
 
             // 3. 时效校验：过期/签发时间异常会抛异常
             JWTValidator.of(jwt).validateDate();
-
             Object userId = jwt.getPayload("userId");
             Object jti = jwt.getPayload("jti");
             if (userId == null || jti == null) {
@@ -156,7 +137,7 @@ public class JwtUtil {
     }
 
     /** 新签发的一对 token + 各自的 jti */
-    public record IssuedTokens(TokenDTO tokens, String accessJti, String refreshJti) {
+    public record IssuedTokens(String accessToken, String refreshToken, String accessJti, String refreshJti) {
     }
 
     /** 单个新签发的 access token + 其 jti */
