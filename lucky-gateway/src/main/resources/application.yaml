@@ -1,0 +1,62 @@
+server:
+  port: ${GATEWAY_PORT:8100}
+
+spring:
+  application:
+    name: lucky-gateway
+  config:
+    import:
+      - "optional:nacos:common.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+      - "optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      discovery:
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+      config:
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+    gateway:
+      # 全局跨域支持（方便前端与接口测试工具联调）
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        # 用户服务
+        - id: user-service
+          uri: lb://lucky-user-service
+          predicates:
+            - Path=/user/**, /admin/user/**
+
+        # 评论服务
+        - id: comment-service
+          uri: lb://lucky-comment-service
+          predicates:
+            - Path=/comment/**, /admin/comment/**
+
+        # 互动服务 (点赞、收藏)
+        - id: interaction-service
+          uri: lb://lucky-interaction-service
+          predicates:
+            - Path=/thumb/**, /favorite/**
+
+        # 消息服务
+        - id: message-service
+          uri: lb://lucky-message-service
+          predicates:
+            - Path=/message/**
+
+        # 社区/帖子服务 (贴吧、帖子)
+        - id: community-service
+          uri: lb://lucky-community-service
+          predicates:
+            - Path=/bar/**, /post/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,gateway
