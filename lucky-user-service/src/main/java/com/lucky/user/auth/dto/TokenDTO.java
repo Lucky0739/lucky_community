@@ -11,7 +11,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TokenDTO {
-
+    /**
+     * 短token
+     */
     private String accessToken;
+    /**
+     * 长token
+     */
     private String refreshToken;
 }

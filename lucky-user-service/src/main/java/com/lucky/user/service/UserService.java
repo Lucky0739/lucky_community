@@ -1,7 +1,6 @@
 package com.lucky.user.service;
 
 
-import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
@@ -20,19 +19,16 @@ public interface UserService {
     LoginVO login(LoginDTO loginDTO);
 
     /**
-     * 平台管理员任命吧务：写入任命记录并给目标用户绑定 BAR_ADMIN 角色
-     * <p>仅平台管理员可调用；同一用户在同一个吧最多一条吧务身份(唯一索引兜底)
+     * 自助编辑个人资料：更新昵称/头像 + 扩展信息(城市/介绍/性别/生日)
      *
-     * @param grantUserId 任命人(当前登录的平台管理员)
-     * @param dto         贴吧ID + 被任命用户ID
+     * @throws com.lucky.common.exception.UnauthorizedException 无登录上下文（未走鉴权拦截器）
      */
-    void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto);
+    void updateProfile(UpdateProfileDTO dto);
 
     /**
-     * 编辑个人资料：更新昵称/头像 + 扩展信息(城市/介绍/性别/生日)
-     * <p>只更新非空字段，null 表示不修改
+     * 指定目标编辑个人资料：改的是 {@code userId} 指向的用户，供管理员路径使用
      *
-     * @param userId 当前登录用户
+     * @param userId 目标用户，不是操作人
      */
-    void updateProfile(Long userId, UpdateProfileDTO dto);
+    void updateProfileForUser(Long userId, UpdateProfileDTO dto);
 }

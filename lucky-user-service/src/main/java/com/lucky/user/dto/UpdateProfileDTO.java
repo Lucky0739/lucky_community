@@ -14,14 +14,6 @@ import java.time.LocalDate;
 @Data
 public class UpdateProfileDTO {
 
-    /**
-     * 目标用户ID：仅 {@code /admin/user/update} 使用
-     * <p>刻意不加 {@code @NotNull}——本类是自助编辑({@code /user/profile})与管理员编辑共用的，
-     * 自助路径不传该字段。管理员路径的必填校验放在 service 层(见 {@code AdminUserServiceImpl#updateUser})
-     * <p><b>自助路径永远不读这个字段</b>：它改的一律是 token 里的登录人。将来若有人拿它当「改谁」的
-     * 依据，就是越权改他人资料
-     */
-    private Long userId;
 
     /** 昵称 */
     @Size(max = 32, message = "昵称过长")

@@ -3,7 +3,7 @@ package com.lucky.user.auth;
 import com.lucky.user.auth.dto.RefreshResult;
 
 /**
- * 会话与凭证：刷新 / 登出 / 踢下线 / 撤销
+ * 会话与凭证
  */
 public interface AuthService {
 

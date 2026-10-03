@@ -17,5 +17,5 @@ public interface UserRoleMapper {
 
     boolean existsByUserIdAndRoleCode(@Param("userId") Long userId, @Param("roleCode") String roleCode);
 
-    int deleteByUserId(@Param("userId") Long userId);
+    int logicalDeleteByUserId(@Param("userId") Long userId);
 }

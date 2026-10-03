@@ -55,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
         throw new UnauthorizedException("登录状态异常，请重新登录");
     }
 
+
     @Override
     public void logout(String accessToken, String refreshToken) {
         JwtUtil.Payload access = jwtUtil.parse(accessToken, JwtUtil.TYPE_ACCESS);

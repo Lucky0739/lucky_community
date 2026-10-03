@@ -2,20 +2,18 @@ package com.lucky.user.auth;
 
 import com.lucky.common.auth.JwtUtil;
 import com.lucky.common.auth.TokenRedisService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
  * 会话签发的唯一入口：把「签 token」和「登记会话状态」焊在一起
  */
 @Service
+@RequiredArgsConstructor
 public class TokenIssuer {
 
-    @Resource
-    private JwtUtil jwtUtil;
-
-    @Resource
-    private TokenRedisService tokenRedisService;
+    private final JwtUtil jwtUtil;
+    private final TokenRedisService tokenRedisService;
 
     /**
      * 签发一对双 Token 并完成登记：refresh 建会话（jti -> userId），access jti 进白名单

@@ -42,7 +42,9 @@
         )
     </select>
 
-    <delete id="deleteByUserId">
-        DELETE FROM tb_user_role WHERE user_id = #{userId}
-    </delete>
+    <update id="logicalDeleteByUserId">
+        UPDATE tb_user_role
+        SET deleted = 1
+        WHERE user_id = #{userId} AND deleted = 0
+    </update>
 </mapper>

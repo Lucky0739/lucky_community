@@ -19,6 +19,9 @@ public class UserRole {
     /** 角色ID，关联tb_role.id */
     private Long roleId;
 
+    /** 逻辑删除：0未删除，1已删除 */
+    private Integer deleted;
+
     /** 创建时间 */
     private LocalDateTime createTime;
 

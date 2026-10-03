@@ -1,10 +1,13 @@
 package com.lucky.user.service.impl;
 
+import com.lucky.common.enums.RoleType;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.user.auth.AuthService;
+import com.lucky.user.dto.AdminUpdateProfileDTO;
 import com.lucky.user.dto.AdminUserQueryDTO;
+import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.HandlerActionDTO;
-import com.lucky.user.dto.UpdateProfileDTO;
+import com.lucky.user.entity.BarManager;
 import com.lucky.user.entity.Role;
 import com.lucky.user.entity.User;
 import com.lucky.user.entity.UserInfo;
@@ -19,9 +22,9 @@ import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
 import com.lucky.user.vo.PageResult;
 import com.lucky.user.vo.RoleVO;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -44,24 +47,30 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserInfoMapper userInfoMapper;
     private final BarManagerMapper barManagerMapper;
     private final UserRoleMapper userRoleMapper;
+    private final PermissionService permissionService;
+    private final UserService userService;
+    private final AuthService authService;
 
-    @Resource
-    private PermissionService permissionService;
-
-    @Resource
-    private UserService userService;
-
-    @Resource
-    private AuthService authService;
-
+    /**
+     * 分页查询用户
+     * @param operatorId 操作人(当前登录的平台管理员)
+     * @param query      筛选条件，phone 前缀匹配 / nickName 模糊匹配
+     * @return
+     */
     @Override
     public PageResult<AdminUserVO> pageUsers(Long operatorId, AdminUserQueryDTO query) {
         requirePlatformAdmin(operatorId);
         String phone = StringUtils.hasText(query.getPhone()) ? query.getPhone() : null;
         String nickName = StringUtils.hasText(query.getNickName()) ? query.getNickName() : null;
-        long pageNum = query.getPageNum() == null ? 1L : query.getPageNum();
-        long pageSize = query.getPageSize() == null ? 10L : query.getPageSize();
-        long offset = (pageNum - 1) * pageSize;
+        Integer pageNum = query.getPageNum();
+        if(pageNum == null){
+            pageNum=1;
+        }
+        Integer pageSize = query.getPageSize();
+        if(pageSize == null){
+            pageNum=10;
+        }
+        int offset = (pageNum - 1) * pageSize;
         long total = userMapper.countByFilter(phone, nickName);
         if (total == 0) {
             return new PageResult<>(List.of(), 0);
@@ -78,43 +87,81 @@ public class AdminUserServiceImpl implements AdminUserService {
         return new PageResult<>(records, total);
     }
 
+    /**
+     * 查询用户详情
+     * @param operatorId
+     * @param userId
+     * @return
+     */
     @Override
     public AdminUserDetailVO getUserDetail(Long operatorId, Long userId) {
         requirePlatformAdmin(operatorId);
         User user = requireActiveUser(userId);
         UserInfo userInfo = userInfoMapper.selectByUserId(userId);
-        AdminUserDetailVO vo = new AdminUserDetailVO();
-        vo.setUserId(user.getId());
-        vo.setPhone(user.getPhone());
-        vo.setNickName(user.getNickName());
-        vo.setIcon(user.getIcon());
-        vo.setCreateTime(user.getCreateTime());
-        vo.setUpdateTime(user.getUpdateTime());
-        vo.setRoles(toRoleVOs(permissionService.listRoles(userId)));
+        AdminUserDetailVO adminUserDetailVO = new AdminUserDetailVO();
+        adminUserDetailVO.setUserId(user.getId());
+        adminUserDetailVO.setPhone(user.getPhone());
+        adminUserDetailVO.setNickName(user.getNickName());
+        adminUserDetailVO.setIcon(user.getIcon());
+        adminUserDetailVO.setCreateTime(user.getCreateTime());
+        adminUserDetailVO.setUpdateTime(user.getUpdateTime());
+        adminUserDetailVO.setRoles(toRoleVOs(permissionService.listRoles(userId)));
         if (userInfo != null) {
-            vo.setCity(userInfo.getCity());
-            vo.setIntroduce(userInfo.getIntroduce());
-            vo.setFans(userInfo.getFans());
-            vo.setFollowee(userInfo.getFollowee());
-            vo.setGender(userInfo.getGender());
-            vo.setBirthday(userInfo.getBirthday());
+            adminUserDetailVO.setCity(userInfo.getCity());
+            adminUserDetailVO.setIntroduce(userInfo.getIntroduce());
+            adminUserDetailVO.setFans(userInfo.getFans());
+            adminUserDetailVO.setFollowee(userInfo.getFollowee());
+            adminUserDetailVO.setGender(userInfo.getGender());
+            adminUserDetailVO.setBirthday(userInfo.getBirthday());
         }
-        return vo;
+        return adminUserDetailVO;
     }
 
+    /**
+     * 修改更新用户信息：改的是 dto.getUserId() 指向的用户，不是操作人自己
+     * @param operatorId 操作人(当前登录的平台管理员)
+     */
     @Override
-    public void updateUser(Long operatorId, UpdateProfileDTO dto) {
+    public void updateUser(Long operatorId, AdminUpdateProfileDTO updateProfileDTO) {
         requirePlatformAdmin(operatorId);
-        Long userId = dto.getUserId();
+        // userId 上有 @NotNull，Controller 已拦一道；这里再兜一次，
+        // 保证直接以编程方式调用本方法时也不会「改到空目标」
+        Long userId = updateProfileDTO.getUserId();
         if (userId == null) {
             throw new BusinessException("用户ID不能为空");
         }
+        // 由 @TableLogic 自动追加 AND deleted=0，已删用户查不到
         if (userMapper.selectById(userId) == null) {
             throw new BusinessException("用户不存在");
         }
-        userService.updateProfile(userId, dto);
+        userService.updateProfileForUser(userId, updateProfileDTO);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void appointBarAdmin(Long operatorId, AppointBarAdminDTO dto) {
+        requirePlatformAdmin(operatorId);
+        if (userMapper.selectById(dto.getUserId()) == null) {
+            throw new BusinessException("被任命用户不存在");
+        }
+        BarManager barManager = new BarManager();
+        barManager.setBarId(dto.getBarId());
+        barManager.setUserId(dto.getUserId());
+        barManager.setGrantUserId(operatorId);
+        barManager.setStatus(BarManager.STATUS_ACTIVE);
+        try {
+            barManagerMapper.insert(barManager);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException("该用户已是本吧吧务");
+        }
+        permissionService.bindRoleIfAbsent(dto.getUserId(), RoleType.BAR_ADMIN);
+    }
+
+    /**
+     * 删除用户
+     * @param operatorId
+     * @param userIds 待删除的用户ID，非空
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUsers(Long operatorId, List<Long> userIds) {
@@ -133,6 +180,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         throw new BusinessException("帖子处置尚未迁入用户服务");
     }
 
+    /**
+     * 删除用户的检验逻辑方法
+     * @param operatorId
+     * @param userIds
+     */
     private void validateDeletable(Long operatorId, List<Long> userIds) {
         if (userIds.contains(operatorId)) {
             throw new BusinessException("不能删除自己");
@@ -150,6 +202,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    /**
+     * 删除用户逻辑
+     * @param userId
+     */
     private void applyDelete(Long userId) {
         int revoked = barManagerMapper.revokeByUserId(userId);
         if (revoked > 0) {
@@ -159,7 +215,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (rows == 0) {
             throw new BusinessException("用户不存在");
         }
-        userRoleMapper.deleteByUserId(userId);
+        userRoleMapper.logicalDeleteByUserId(userId);
         authService.revoke(userId);
     }
 
@@ -178,15 +234,15 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     private AdminUserVO toVO(User user, List<Role> roles) {
-        AdminUserVO vo = new AdminUserVO();
-        vo.setUserId(user.getId());
-        vo.setPhone(user.getPhone());
-        vo.setNickName(user.getNickName());
-        vo.setIcon(user.getIcon());
-        vo.setCreateTime(user.getCreateTime());
-        vo.setUpdateTime(user.getUpdateTime());
-        vo.setRoles(toRoleVOs(roles));
-        return vo;
+        AdminUserVO adminUserVO = new AdminUserVO();
+        adminUserVO.setUserId(user.getId());
+        adminUserVO.setPhone(user.getPhone());
+        adminUserVO.setNickName(user.getNickName());
+        adminUserVO.setIcon(user.getIcon());
+        adminUserVO.setCreateTime(user.getCreateTime());
+        adminUserVO.setUpdateTime(user.getUpdateTime());
+        adminUserVO.setRoles(toRoleVOs(roles));
+        return adminUserVO;
     }
 
     private List<RoleVO> toRoleVOs(List<Role> roles) {

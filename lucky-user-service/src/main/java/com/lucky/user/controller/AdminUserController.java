@@ -3,16 +3,17 @@ package com.lucky.user.controller;
 import com.lucky.common.Result;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
+import com.lucky.user.dto.AdminUpdateProfileDTO;
 import com.lucky.user.dto.AdminUserQueryDTO;
+import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.BatchDeleteUserDTO;
 import com.lucky.user.dto.HandlerActionDTO;
-import com.lucky.user.dto.UpdateProfileDTO;
 import com.lucky.user.service.AdminUserService;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
 import com.lucky.user.vo.PageResult;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,10 +33,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/user")
 @AuthRequired
+@RequiredArgsConstructor
 public class AdminUserController {
 
-    @Resource
-    private AdminUserService adminUserService;
+    private final AdminUserService adminUserService;
 
     /**
      * 分页查询用户
@@ -55,11 +56,20 @@ public class AdminUserController {
     }
 
     /**
-     * 编辑用户资料
+     * 编辑用户资料：请求体里的 userId 是「被编辑的人」，操作人取 access token
      */
     @PostMapping("/update")
-    public Result<String> update(@RequestBody @Valid UpdateProfileDTO dto) {
+    public Result<String> update(@RequestBody @Valid AdminUpdateProfileDTO dto) {
         adminUserService.updateUser(UserContext.getUserId(), dto);
+        return Result.success();
+    }
+
+    /**
+     * 任命吧务：写入任命记录并给目标用户绑定 BAR_ADMIN 角色
+     */
+    @PostMapping("/bar-admin/appoint")
+    public Result<String> appointBarAdmin(@RequestBody @Valid AppointBarAdminDTO dto) {
+        adminUserService.appointBarAdmin(UserContext.getUserId(), dto);
         return Result.success();
     }
 

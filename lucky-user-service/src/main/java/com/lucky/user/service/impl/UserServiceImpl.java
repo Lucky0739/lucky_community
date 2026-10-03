@@ -1,22 +1,21 @@
 package com.lucky.user.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.lucky.common.auth.UserContext;
 import com.lucky.common.enums.RoleType;
 import com.lucky.common.exception.BusinessException;
+import com.lucky.common.exception.UnauthorizedException;
 import com.lucky.user.auth.LoginAttemptService;
 import com.lucky.user.auth.TokenIssuer;
 import com.lucky.user.auth.dto.TokenDTO;
-import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
-import com.lucky.user.entity.BarManager;
 import com.lucky.user.entity.Role;
 import com.lucky.user.entity.User;
 import com.lucky.user.entity.UserInfo;
 import com.lucky.user.entity.UserPhone;
 import com.lucky.user.entity.UserRole;
-import com.lucky.user.mapper.BarManagerMapper;
 import com.lucky.user.mapper.RoleMapper;
 import com.lucky.user.mapper.UserInfoMapper;
 import com.lucky.user.mapper.UserMapper;
@@ -41,15 +40,17 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final TokenIssuer tokenIssuer;
     private final PasswordEncoder passwordEncoder;
-
     private final LoginAttemptService loginAttemptService;
     private final PermissionService permissionService;
     private final UserInfoMapper userInfoMapper;
     private final UserPhoneMapper userPhoneMapper;
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
-    private final BarManagerMapper barManagerMapper;
 
+    /**
+     * 注册
+     * @param registerDTO
+     */
     @Override
     // 注册跨 4 张表，加事务保证要么全成功、要么全回滚
     @Transactional(rollbackFor = Exception.class)
@@ -65,7 +66,6 @@ public class UserServiceImpl implements UserService {
         user.setPhone(registerDTO.getPhone());
         user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
         user.setNickName(String.valueOf(id));
-        // 并发兜底：万一两个请求同时通过了上面的查重，靠 tb_user.phone 唯一索引拦下第二个
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException e) {
@@ -78,7 +78,6 @@ public class UserServiceImpl implements UserService {
         userInfo.setFans(0);
         userInfo.setFollowee(0);
         userInfoMapper.insert(userInfo);
-
         // 4. 手机号记录
         UserPhone userPhone = new UserPhone();
         userPhone.setId(IdUtil.getSnowflakeNextId());
@@ -97,9 +96,14 @@ public class UserServiceImpl implements UserService {
         userRoleMapper.insert(userRole);
     }
 
+    /**
+     * 登录
+     * @param loginDTO
+     * @return
+     */
     @Override
     public LoginVO login(LoginDTO loginDTO) {
-        // 0. 防刷：失败次数超限直接拒绝(在查库/验密之前拦截，顺带省掉 BCrypt 开销)
+        // 0. 防刷：失败次数超限直接拒绝
         if (loginAttemptService.isBlocked(loginDTO.getPhone())) {
             throw new BusinessException("登录失败次数过多，请稍后再试");
         }
@@ -130,38 +134,40 @@ public class UserServiceImpl implements UserService {
         return loginvo;
     }
 
+
+    /**
+     * 自助编辑资料：改的是 access token 里的登录人
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void appointBarAdmin(Long grantUserId, AppointBarAdminDTO dto) {
-        if (!permissionService.isPlatformAdmin(grantUserId)) {
-            throw new BusinessException("仅平台管理员可任命吧务");
+    public void updateProfile(UpdateProfileDTO updateProfileDTO) {
+        Long userId = UserContext.getUserId();
+        if (userId == null) {
+            throw new UnauthorizedException("未登录，请先登录");
         }
-        if (userMapper.selectById(dto.getUserId()) == null) {
-            throw new BusinessException("被任命用户不存在");
-        }
-        BarManager barManager = new BarManager();
-        barManager.setBarId(dto.getBarId());
-        barManager.setUserId(dto.getUserId());
-        barManager.setGrantUserId(grantUserId);
-        barManager.setStatus(BarManager.STATUS_ACTIVE);
-        try {
-            barManagerMapper.insert(barManager);
-        } catch (DuplicateKeyException e) {
-            throw new BusinessException("该用户已是本吧吧务");
-        }
-        permissionService.bindRoleIfAbsent(dto.getUserId(), RoleType.BAR_ADMIN);
+        doUpdateProfile(userId, updateProfileDTO);
     }
 
+    /**
+     * 指定目标编辑资料：改的是 userId 指向的用户
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateProfile(Long userId, UpdateProfileDTO dto) {
-        if (dto.getNickName() != null || dto.getIcon() != null) {
-            userMapper.updateProfile(userId, dto.getNickName(), dto.getIcon());
+    public void updateProfileForUser(Long userId, UpdateProfileDTO updateProfileDTO) {
+        doUpdateProfile(userId, updateProfileDTO);
+    }
+
+    /**
+     * 真正的写库逻辑，供上面两个入口共用
+     */
+    private void doUpdateProfile(Long userId, UpdateProfileDTO updateProfileDTO) {
+        if (updateProfileDTO.getNickName() != null || updateProfileDTO.getIcon() != null) {
+            userMapper.updateProfile(userId, updateProfileDTO.getNickName(), updateProfileDTO.getIcon());
         }
-        if (dto.getCity() != null || dto.getIntroduce() != null
-                || dto.getGender() != null || dto.getBirthday() != null) {
-            userInfoMapper.updateProfile(userId, dto.getCity(), dto.getIntroduce(),
-                    dto.getGender(), dto.getBirthday());
+        if (updateProfileDTO.getCity() != null || updateProfileDTO.getIntroduce() != null
+                || updateProfileDTO.getGender() != null || updateProfileDTO.getBirthday() != null) {
+            userInfoMapper.updateProfile(userId, updateProfileDTO.getCity(), updateProfileDTO.getIntroduce(),
+                    updateProfileDTO.getGender(), updateProfileDTO.getBirthday());
         }
     }
 }
