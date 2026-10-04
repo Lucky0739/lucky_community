@@ -1,4 +1,4 @@
-package com.lucky.community.bar.entity;
+package com.lucky.community.entity;
 
 import lombok.Data;
 

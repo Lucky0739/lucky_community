@@ -1,6 +1,6 @@
-package com.lucky.community.bar.mapper;
+package com.lucky.community.mapper;
 
-import com.lucky.community.bar.entity.BarManager;
+import com.lucky.community.entity.BarManager;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

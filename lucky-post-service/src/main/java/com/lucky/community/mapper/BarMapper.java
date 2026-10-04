@@ -1,6 +1,6 @@
-package com.lucky.community.bar.mapper;
+package com.lucky.community.mapper;
 
-import com.lucky.community.bar.entity.Bar;
+import com.lucky.community.entity.Bar;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,4 +25,7 @@ public interface BarMapper {
                          @Param("offset") int offset);
 
     List<Bar> selectByIds(@Param("ids") List<Long> ids);
+
+    /** 布隆过滤器启动预热：全部已入库的吧 ID */
+    List<Long> selectAllIds();
 }

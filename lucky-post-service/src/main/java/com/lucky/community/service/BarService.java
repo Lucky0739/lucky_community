@@ -1,10 +1,10 @@
-package com.lucky.community.bar.service;
+package com.lucky.community.service;
 
-import com.lucky.community.bar.dto.BarQueryDTO;
-import com.lucky.community.bar.dto.CreateBarDTO;
-import com.lucky.community.bar.dto.UpdateBarDTO;
-import com.lucky.community.bar.vo.BarVO;
-import com.lucky.community.common.PageResult;
+import com.lucky.community.dto.BarQueryDTO;
+import com.lucky.community.dto.CreateBarDTO;
+import com.lucky.community.dto.UpdateBarDTO;
+import com.lucky.community.vo.BarVO;
+import com.lucky.common.vo.PageResult;
 
 public interface BarService {
 

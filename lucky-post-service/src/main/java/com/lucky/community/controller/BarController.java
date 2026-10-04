@@ -1,15 +1,15 @@
-package com.lucky.community.bar.controller;
+package com.lucky.community.controller;
 
 import com.lucky.common.Result;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.file.FileService;
-import com.lucky.community.bar.dto.BarQueryDTO;
-import com.lucky.community.bar.dto.CreateBarDTO;
-import com.lucky.community.bar.dto.UpdateBarDTO;
-import com.lucky.community.bar.service.BarService;
-import com.lucky.community.bar.vo.BarVO;
-import com.lucky.community.common.PageResult;
+import com.lucky.community.dto.BarQueryDTO;
+import com.lucky.community.dto.CreateBarDTO;
+import com.lucky.community.dto.UpdateBarDTO;
+import com.lucky.community.service.BarService;
+import com.lucky.community.vo.BarVO;
+import com.lucky.common.vo.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class BarController {
     private final BarService barService;
     private final FileService fileService;
 
-    @PostMapping
+    @PostMapping("/create")
     public Result<BarVO> create(@RequestBody @Valid CreateBarDTO createBarDTO) {
         return Result.success(barService.createBar(UserContext.getUserId(), createBarDTO));
     }

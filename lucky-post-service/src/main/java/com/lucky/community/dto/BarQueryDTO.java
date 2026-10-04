@@ -1,4 +1,4 @@
-package com.lucky.community.bar.dto;
+package com.lucky.community.dto;
 
 import com.lucky.common.dto.OffsetPageQueryDTO;
 import lombok.Data;

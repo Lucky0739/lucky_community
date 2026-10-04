@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lucky.community.bar.mapper.BarMapper">
+<mapper namespace="com.lucky.community.mapper.BarMapper">
 
     <sql id="BarColumns">
         id, name, description, avatar, follow_count, post_count, owner_user_id, status, create_time, update_time
@@ -13,7 +13,7 @@
                 COALESCE(#{followCount}, 0), COALESCE(#{postCount}, 0), #{ownerUserId}, #{status})
     </insert>
 
-    <select id="selectById" resultType="com.lucky.community.bar.entity.Bar">
+    <select id="selectById" resultType="com.lucky.community.entity.Bar">
         SELECT <include refid="BarColumns"/>
         FROM tb_bar
         WHERE id = #{id}
@@ -49,19 +49,23 @@
         <include refid="PageFilter"/>
     </select>
 
-    <select id="selectPage" resultType="com.lucky.community.bar.entity.Bar">
+    <select id="selectPage" resultType="com.lucky.community.entity.Bar">
         SELECT <include refid="BarColumns"/>
         <include refid="PageFilter"/>
         ORDER BY id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
-    <select id="selectByIds" resultType="com.lucky.community.bar.entity.Bar">
+    <select id="selectByIds" resultType="com.lucky.community.entity.Bar">
         SELECT <include refid="BarColumns"/>
         FROM tb_bar
         WHERE id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+    </select>
+
+    <select id="selectAllIds" resultType="long">
+        SELECT id FROM tb_bar
     </select>
 </mapper>

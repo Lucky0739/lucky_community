@@ -1,20 +1,21 @@
-package com.lucky.community.bar.service.impl;
+package com.lucky.community.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.lucky.common.bloom.LongBloomFilter;
 import com.lucky.common.enums.RoleType;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.file.FileService;
-import com.lucky.community.bar.cache.BarDetailCache;
-import com.lucky.community.bar.dto.BarQueryDTO;
-import com.lucky.community.bar.dto.CreateBarDTO;
-import com.lucky.community.bar.dto.UpdateBarDTO;
-import com.lucky.community.bar.entity.Bar;
-import com.lucky.community.bar.entity.BarManager;
-import com.lucky.community.bar.mapper.BarManagerMapper;
-import com.lucky.community.bar.mapper.BarMapper;
-import com.lucky.community.bar.service.BarService;
-import com.lucky.community.bar.vo.BarVO;
-import com.lucky.community.common.PageResult;
+import com.lucky.community.cache.BarDetailCache;
+import com.lucky.community.dto.BarQueryDTO;
+import com.lucky.community.dto.CreateBarDTO;
+import com.lucky.community.dto.UpdateBarDTO;
+import com.lucky.community.entity.Bar;
+import com.lucky.community.entity.BarManager;
+import com.lucky.community.mapper.BarManagerMapper;
+import com.lucky.community.mapper.BarMapper;
+import com.lucky.community.service.BarService;
+import com.lucky.community.vo.BarVO;
+import com.lucky.common.vo.PageResult;
 import com.lucky.community.support.PermissionSupport;
 import com.lucky.community.support.entity.UserBrief;
 import com.lucky.community.support.mapper.UserReadMapper;
@@ -43,7 +44,14 @@ public class BarServiceImpl implements BarService {
     private final PermissionSupport permissionSupport;
     private final BarDetailCache barDetailCache;
     private final FileService fileService;
+    private final LongBloomFilter barBloomFilter;
 
+    /**
+     * 创建吧
+     * @param userId
+     * @param createBarDTO
+     * @return
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BarVO createBar(Long userId, CreateBarDTO createBarDTO) {
@@ -61,6 +69,7 @@ public class BarServiceImpl implements BarService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException("吧名已被占用：" + name);
         }
+        barBloomFilter.add(bar.getId());
         BarManager barManager = new BarManager();
         barManager.setBarId(bar.getId());
         barManager.setUserId(userId);
@@ -69,16 +78,20 @@ public class BarServiceImpl implements BarService {
         barManagerMapper.insert(barManager);
         permissionSupport.bindRoleIfAbsent(userId, RoleType.BAR_ADMIN);
         Bar saved = barMapper.selectById(bar.getId());
-        return toVO(saved == null ? bar : saved, userReadMapper.selectById(userId));
+        if (saved == null) {
+            saved = bar;
+        }
+        UserBrief userBrief= userReadMapper.selectById(userId);
+        return toBarVO(saved, userBrief);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public BarVO updateBar(Long operatorId, Long barId, UpdateBarDTO dto) {
+    public BarVO updateBar(Long operatorId, Long barId, UpdateBarDTO updateBarDTO) {
         Bar bar = requireManageable(operatorId, barId, "仅吧主或平台管理员可修改贴吧");
         String newName = null;
-        if (dto.getName() != null) {
-            newName = dto.getName().trim();
+        if (updateBarDTO.getName() != null) {
+            newName = updateBarDTO.getName().trim();
             if (!StringUtils.hasText(newName)) {
                 throw new BusinessException("吧名不能为空");
             }
@@ -86,13 +99,13 @@ public class BarServiceImpl implements BarService {
                 newName = null;
             }
         }
-        boolean changeDescription = dto.getDescription() != null;
-        boolean changeAvatar = dto.getAvatar() != null;
+        boolean changeDescription = updateBarDTO.getDescription() != null;
+        boolean changeAvatar = updateBarDTO.getAvatar() != null;
         if (newName == null && !changeDescription && !changeAvatar) {
             throw new BusinessException("没有要修改的内容");
         }
         if (changeAvatar) {
-            String avatar = dto.getAvatar();
+            String avatar = updateBarDTO.getAvatar();
             if (StringUtils.hasText(avatar) && fileService.resolveBarObjectName(avatar) == null) {
                 throw new BusinessException("吧头像地址不合法");
             }
@@ -101,10 +114,10 @@ public class BarServiceImpl implements BarService {
         patch.setId(barId);
         patch.setName(newName);
         if (changeDescription) {
-            patch.setDescription(dto.getDescription());
+            patch.setDescription(updateBarDTO.getDescription());
         }
         if (changeAvatar) {
-            patch.setAvatar(dto.getAvatar());
+            patch.setAvatar(updateBarDTO.getAvatar());
         }
         try {
             barMapper.updateById(patch);
@@ -112,11 +125,11 @@ public class BarServiceImpl implements BarService {
             throw new BusinessException("吧名已被占用：" + newName);
         }
         registerAfterCommit(() -> barDetailCache.evict(barId));
-        BarVO vo = loadBarVO(barId);
-        if (vo == null) {
+        BarVO barVO = loadBarVO(barId);
+        if (barVO == null) {
             throw new BusinessException("贴吧不存在");
         }
-        return vo;
+        return barVO;
     }
 
     @Override
@@ -186,7 +199,7 @@ public class BarServiceImpl implements BarService {
             }
         }
         return bars.stream()
-                .map(bar -> toVO(bar, ownerById.get(bar.getOwnerUserId())))
+                .map(bar -> toBarVO(bar, ownerById.get(bar.getOwnerUserId())))
                 .toList();
     }
 
@@ -200,15 +213,18 @@ public class BarServiceImpl implements BarService {
     }
 
     private BarVO loadBarVO(Long barId) {
+        if (!barBloomFilter.mightContain(barId)) {
+            return null;
+        }
         Bar bar = barMapper.selectById(barId);
         if (bar == null) {
             return null;
         }
         Long ownerUserId = bar.getOwnerUserId();
-        return toVO(bar, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
+        return toBarVO(bar, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
     }
 
-    private BarVO toVO(Bar bar, UserBrief owner) {
+    private BarVO toBarVO(Bar bar, UserBrief userBrief) {
         BarVO barVO = new BarVO();
         barVO.setBarId(bar.getId());
         barVO.setName(bar.getName());
@@ -217,7 +233,7 @@ public class BarServiceImpl implements BarService {
         barVO.setFollowCount(bar.getFollowCount() == null ? 0 : bar.getFollowCount());
         barVO.setPostCount(bar.getPostCount() == null ? 0 : bar.getPostCount());
         barVO.setOwnerUserId(bar.getOwnerUserId());
-        barVO.setOwnerNickName(owner == null ? null : owner.getNickName());
+        barVO.setOwnerNickName(userBrief == null ? null : userBrief.getNickName());
         barVO.setStatus(bar.getStatus());
         barVO.setCreateTime(bar.getCreateTime());
         return barVO;

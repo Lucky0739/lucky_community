@@ -1,4 +1,4 @@
-package com.lucky.community.bar.vo;
+package com.lucky.community.vo;
 
 import lombok.Data;
 
