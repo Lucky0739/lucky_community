@@ -14,6 +14,7 @@ spring:
       discovery:
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
       config:
+        namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
     gateway:
       # 全局跨域支持（方便前端与接口测试工具联调）
@@ -49,9 +50,9 @@ spring:
           predicates:
             - Path=/message/**
 
-        # 社区/帖子服务 (贴吧、帖子)
-        - id: community-service
-          uri: lb://lucky-community-service
+        # 帖子服务 (贴吧、帖子)
+        - id: post-service
+          uri: lb://lucky-post-service
           predicates:
             - Path=/bar/**, /post/**
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.community.support.mapper.UserReadMapper">
+
+    <select id="selectById" resultType="com.lucky.community.support.entity.UserBrief">
+        SELECT id, nick_name AS nickName, icon
+        FROM tb_user
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByIds" resultType="com.lucky.community.support.entity.UserBrief">
+        SELECT id, nick_name AS nickName, icon
+        FROM tb_user
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+    </select>
+</mapper>

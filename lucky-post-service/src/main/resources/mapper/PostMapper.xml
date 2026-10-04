@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.community.mapper.PostMapper">
+
+    <sql id="PostColumns">
+        id, bar_id, user_id, title, content, cover_image, image_count, deleted,
+        event_status, embed_status, analysis_status, analysis_retry_count, analysis_time,
+        create_time, update_time
+    </sql>
+
+    <sql id="ApprovedExists">
+        EXISTS (
+            SELECT 1 FROM tb_post_analysis a
+            WHERE a.post_id = tb_post.id
+              AND (
+                a.handler_action IN ('未处置', '警告')
+                OR (a.risk_level = '无风险' AND a.handler_action IS NULL)
+              )
+        )
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO tb_post (id, bar_id, user_id, title, content, cover_image, image_count, deleted,
+                             event_status, embed_status, analysis_status, analysis_retry_count,
+                             create_time, update_time)
+        VALUES (#{id}, #{barId}, #{userId}, #{title}, #{content}, #{coverImage}, #{imageCount}, 0,
+                #{eventStatus}, #{embedStatus}, #{analysisStatus}, #{analysisRetryCount},
+                #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="selectById" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <update id="updateContent">
+        UPDATE tb_post
+        SET title = #{title},
+            content = #{content},
+            cover_image = #{coverImage},
+            image_count = #{imageCount},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="resetAnalysisOnEdit">
+        UPDATE tb_post
+        SET analysis_status = 0,
+            event_status = 0,
+            embed_status = 0,
+            analysis_retry_count = 0,
+            analysis_time = NULL,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="logicalDeleteById">
+        UPDATE tb_post
+        SET deleted = 1, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateAnalysisStatus">
+        UPDATE tb_post
+        SET analysis_status = #{analysisStatus},
+            <if test="analysisTime != null">analysis_time = #{analysisTime},</if>
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <sql id="ApprovedFilter">
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedExists"/>
+        <if test="barId != null">
+            AND bar_id = #{barId}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+    </sql>
+
+    <select id="countApprovedPage" resultType="long">
+        SELECT COUNT(*)
+        <include refid="ApprovedFilter"/>
+    </select>
+
+    <select id="selectApprovedPage" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        <include refid="ApprovedFilter"/>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectApprovedFeed" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedExists"/>
+        <if test="barId != null">
+            AND bar_id = #{barId}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="lastId != null">
+            AND id &lt; #{lastId}
+        </if>
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectApprovedRecent" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedExists"/>
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectAllIds" resultType="long">
+        SELECT id FROM tb_post WHERE deleted = 0
+    </select>
+
+    <select id="selectByIds" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

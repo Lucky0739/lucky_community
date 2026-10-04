@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.community.support.mapper.CommentViewMapper">
+
+    <select id="countRootComments" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_comment
+        WHERE post_id = #{postId}
+          AND level = 1
+          AND deleted = 0
+    </select>
+
+    <select id="selectRootComments" resultType="map">
+        SELECT id AS "commentId",
+               post_id AS "postId",
+               user_id AS "userId",
+               content_uuid AS "contentUuid",
+               image_url AS "imageUrl",
+               level,
+               parent_id AS "parentId",
+               reply_comment_id AS "replyCommentId",
+               reply_user_id AS "replyUserId",
+               reply_total AS "replyTotal",
+               like_total AS "likeTotal",
+               is_top AS "isTop",
+               create_time AS "createTime"
+        FROM tb_comment
+        WHERE post_id = #{postId}
+          AND level = 1
+          AND deleted = 0
+        ORDER BY is_top DESC, id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectContentsByUuids" resultType="map">
+        SELECT content_uuid AS "contentUuid", content
+        FROM tb_comment_content
+        WHERE content_uuid IN
+        <foreach collection="uuids" item="uuid" open="(" separator="," close=")">
+            #{uuid}
+        </foreach>
+    </select>
+</mapper>

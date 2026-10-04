@@ -1,0 +1,21 @@
+-- 删除 community 下的全部业务表、索引、触发器和 touch_update_time。
+-- 向量扩展装在 public，不在这个 schema 里，不会被删掉。
+--
+-- 执行本文件会清掉现有业务数据。删完后按下面顺序重建（这些文件就是建表语句）：
+--   1. user.sql      用户、角色、吧务，并插入平台管理员
+--   2. bar.sql       贴吧，并插入测试吧
+--   3. post.sql      帖子、图片、AI 分析
+--   4. comment.sql   评论、正文、评论点赞
+--   5. thumb.sql     帖子点赞
+--   6. favorite.sql  收藏
+--
+-- psql 示例（从项目根目录执行）：
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/rebuild.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/user.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/bar.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/post.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/comment.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/thumb.sql
+--   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/favorite.sql
+
+DROP SCHEMA IF EXISTS community CASCADE;

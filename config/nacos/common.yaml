@@ -1,0 +1,42 @@
+# Nacos 共享配置：Data ID = common.yaml，Group = LUCKY_COMMUNITY
+# 控制台发布后直接生效；各微服务通过 spring.config.import 引用。
+# 本地 application.yaml 仅保留兜底默认值，Nacos 加载成功后会覆盖同名项。
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/community?currentSchema=community,public}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6380}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+jwt:
+  # 生产请在 Nacos 填入 openssl rand -base64 48 生成的密钥，勿提交到 Git
+  secret: ${JWT_SECRET:}
+  access-expire: ${JWT_ACCESS_EXPIRE:1800}
+  refresh-expire: ${JWT_REFRESH_EXPIRE:604800}
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
+  refresh-grace: ${JWT_REFRESH_GRACE:60}
+
+login:
+  max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
+  fail-window-seconds: ${LOGIN_FAIL_WINDOW_SECONDS:900}
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:community}

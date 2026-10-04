@@ -51,6 +51,14 @@
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
+        <!-- 密码编码器用 Hutool 实现，但 PasswordEncoder 接口来自 spring-security-crypto。
+             optional 与本模块 minio/redis/validation 一致：谁用谁自己引，
+             没引的服务不会缺类报错（对应自动配置有 @ConditionalOnClass 守卫） -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>

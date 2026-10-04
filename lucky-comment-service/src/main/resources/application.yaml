@@ -1,0 +1,28 @@
+server:
+  port: ${COMMENT_SERVICE_PORT:8130}
+
+spring:
+  application:
+    name: lucky-comment-service
+  config:
+    import:
+      - "optional:nacos:common.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+      - "optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      discovery:
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

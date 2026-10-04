@@ -1,52 +1,37 @@
-# 基础设施 —— 用法:
-#   docker compose up -d        # 启动
-#   docker compose down         # 停止并移除容器(数据保留在 volume)
-#   docker compose logs -f mysql
-# 连接:
-#   MySQL   host=localhost port=3308 user=root password=root database=community
-#   Redis   host=localhost port=6380
-#   MinIO   API http://localhost:9000  user=minioadmin password=minioadmin
-#           控制台 http://localhost:9001 (用同一组账号登录)
+# 本地基础设施环境
+# 快速连接信息:
+#   PostgreSQL : localhost:5432 (user: postgres, password: postgres, db: community)
+#   Redis      : localhost:6380
+#   MinIO      : API http://localhost:9000, Console http://localhost:9001 (minioadmin / minioadmin)
+#   Nacos      : API http://localhost:8848, Console http://localhost:8080
+#   RocketMQ   : NameServer localhost:9876, Broker localhost:10911, Dashboard http://localhost:8082
+
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: community-mysql
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: community-postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: community
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: community
       TZ: Asia/Shanghai
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
     ports:
-      - "3308:3306"
+      - "5432:5432"
     volumes:
-      - mysql-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/00-vector.sql
+      - ./sql/prompt.sql:/docker-entrypoint-initdb.d/10-prompt.sql
 
   redis:
     image: redis:7-alpine
     container_name: community-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6380:6379"
     volumes:
       - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
 
-  # 对象存储：头像/帖子图片等文件的上传与访问
-  # 注意 MINIO_ROOT_USER/PASSWORD 必须在首次启动前定好，容器起来后再改不生效
-  # (凭据存在数据卷里)，要改只能连同 minio-data 卷一起删掉重建
   minio:
     image: minio/minio:latest
     container_name: community-minio
@@ -54,21 +39,88 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-      TZ: Asia/Shanghai
     command: ["server", "/data", "--console-address", ":9001"]
     ports:
-      - "9000:9000"   # S3 API：应用上传/下载走这里
-      - "9001:9001"   # Web 控制台：浏览器访问
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # 控制台
     volumes:
       - minio-data:/data
-    healthcheck:
-      # MinIO 镜像基于 distroless，没有 curl/wget，只能用自带的 mc 探活
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+
+  nacos:
+    image: nacos/nacos-server:v3.0.3
+    container_name: community-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      # Nacos 3.x 的 docker-startup.sh 无条件逐个校验下面三个变量：即使 AUTH_ENABLE=false 也必须有值，
+      # 否则每撞到一个就 exit 255（容器表现为无限重启，日志停在「must be set」）。
+      # 认证本身是关的，这三个值不参与任何校验，只为让启动脚本过检查。
+      # TOKEN 必须是 Base64，且解码后的原文不少于 32 字符（这里是 lucky-community-local-dev-only-secret-key，41 字符）
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:-bHVja3ktY29tbXVuaXR5LWxvY2FsLWRldi1vbmx5LXNlY3JldC1rZXk=}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-lucky-local-key}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:-lucky-local-value}
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"   # 控制台
+      - "8848:8848"   # HTTP API
+      - "9848:9848"   # gRPC
+    volumes:
+      - nacos-data:/home/nacos/data
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.3
+    container_name: community-rocketmq-namesrv
+    restart: unless-stopped
+    # 镜像默认用户无法写入新建数据卷，本地环境用 root 启动
+    user: "0:0"
+    ports:
+      - "9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    command: sh mqnamesrv
+    volumes:
+      - rocketmq-namesrv-logs:/home/rocketmq/logs
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.3
+    container_name: community-rocketmq-broker
+    restart: unless-stopped
+    user: "0:0"
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "10911:10911"
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: sh mqbroker -c /home/rocketmq/broker.conf
+    volumes:
+      - ./config/rocketmq/broker.conf:/home/rocketmq/broker.conf
+      - rocketmq-broker-logs:/home/rocketmq/logs
+      - rocketmq-broker-store:/home/rocketmq/store
+
+  rocketmq-dashboard:
+    image: apacherocketmq/rocketmq-dashboard:2.1.0
+    container_name: community-rocketmq-dashboard
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+      - rocketmq-broker
+    ports:
+      - "8082:8082"
+    environment:
+      JAVA_OPTS: "-Drocketmq.namesrv.addr=rocketmq-namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
-  mysql-data:
+  postgres-data:
   redis-data:
   minio-data:
+  nacos-data:
+  rocketmq-namesrv-logs:
+  rocketmq-broker-logs:
+  rocketmq-broker-store:

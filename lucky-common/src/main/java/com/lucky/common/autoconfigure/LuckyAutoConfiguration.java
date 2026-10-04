@@ -1,5 +1,6 @@
 package com.lucky.common.autoconfigure;
 
+import com.lucky.common.auth.HutoolPasswordEncoder;
 import com.lucky.common.auth.JwtUtil;
 import com.lucky.common.auth.TokenRedisService;
 import com.lucky.common.auth.interceptor.AuthInterceptor;
@@ -16,6 +17,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -49,6 +51,21 @@ public final class LuckyAutoConfiguration {
         @ConditionalOnMissingBean
         public JwtUtil jwtUtil() {
             return new JwtUtil();
+        }
+    }
+
+    /**
+     * 密码编码器由 Hutool BCrypt 实现。spring-security-crypto 在本模块是 optional 依赖，
+     * 所以用 @ConditionalOnClass 守卫：没引这个依赖的服务不会因为缺类而启动失败。
+     */
+    @AutoConfiguration
+    @ConditionalOnClass(PasswordEncoder.class)
+    public static class Password {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public PasswordEncoder passwordEncoder() {
+            return new HutoolPasswordEncoder();
         }
     }
 

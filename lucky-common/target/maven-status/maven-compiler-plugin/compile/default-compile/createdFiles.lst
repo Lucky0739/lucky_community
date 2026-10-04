@@ -1,6 +1,0 @@
-com/lucky/common/autoconfigure/LuckyAutoConfiguration$AuthWeb.class
-com/lucky/common/autoconfigure/LuckyAutoConfiguration$Web.class
-com/lucky/common/autoconfigure/LuckyAutoConfiguration$Minio.class
-com/lucky/common/autoconfigure/LuckyAutoConfiguration$Auth.class
-com/lucky/common/autoconfigure/LuckyAutoConfiguration$Jwt.class
-com/lucky/common/autoconfigure/LuckyAutoConfiguration.class

@@ -1,5 +1,6 @@
 com.lucky.common.autoconfigure.LuckyAutoConfiguration$Web
 com.lucky.common.autoconfigure.LuckyAutoConfiguration$Jwt
+com.lucky.common.autoconfigure.LuckyAutoConfiguration$Password
 com.lucky.common.autoconfigure.LuckyAutoConfiguration$Auth
 com.lucky.common.autoconfigure.LuckyAutoConfiguration$AuthWeb
 com.lucky.common.autoconfigure.LuckyAutoConfiguration$Minio

@@ -1,0 +1,20 @@
+[project]
+name = "luckycommunity-aiagent"
+version = "0.1.0"
+description = "AI 内容治理 Agent 服务：FastAPI + LangChain + Claude 风控审核"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "langchain-core",
+    "langchain-anthropic",
+    "pydantic",
+    "python-dotenv",
+    "redis",
+    "langgraph",
+    "httpx",
+    "psycopg[binary]>=3.3.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]

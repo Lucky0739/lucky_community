@@ -1,0 +1,39 @@
+# IDEA缓存
+.idea/
+*.iml
+*.iws
+*.ipr
+.toolWindow.db
+.flattened-pom.xml
+.idea/shelf/
+
+# Java编译产物，所有模块target文件夹
+target/
+*.class
+
+# Maven
+!.mvn/wrapper/maven-wrapper.jar
+
+# Mac系统文件
+.DS_Store
+
+# 日志文件
+*.log
+logs/
+
+# Python AI Agent：保留py源码，只忽略缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 【可选】如果你yaml里有真实账号密码，放开下面这行
+# application-local.yml
+
+# AI Agent：本地真实配置含密钥，只提交 .example 模板
+luckyCommunity_AiAgent/ai.toml
+
+# Python 虚拟环境与缓存
+.venv/
+venv/
+.pytest_cache/

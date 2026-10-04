@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.community.mapper.PostAnalysisMapper">
+
+    <insert id="upsert">
+        INSERT INTO tb_post_analysis
+            (id, post_id, summary, similar_post_ids, risk_level, risk_categories, confidence, evidence_json,
+             reasoning, has_conflict, conflict_type, retry_count, handler_action,
+             model_version, latency_ms, token_cost)
+        VALUES
+            (#{a.id}, #{a.postId}, #{a.summary}, #{a.similarPostIds},
+             #{a.riskLevel}, #{a.riskCategories}, #{a.confidence},
+             #{a.evidenceJson}, #{a.reasoning}, #{a.hasConflict}, #{a.conflictType},
+             #{a.retryCount}, #{a.handlerAction}, #{a.modelVersion}, #{a.latencyMs},
+             #{a.tokenCost})
+        ON CONFLICT (post_id) DO UPDATE SET
+            summary          = EXCLUDED.summary,
+            similar_post_ids = EXCLUDED.similar_post_ids,
+            risk_level       = EXCLUDED.risk_level,
+            risk_categories  = EXCLUDED.risk_categories,
+            confidence       = EXCLUDED.confidence,
+            evidence_json    = EXCLUDED.evidence_json,
+            reasoning        = EXCLUDED.reasoning,
+            has_conflict     = EXCLUDED.has_conflict,
+            conflict_type    = EXCLUDED.conflict_type,
+            retry_count      = EXCLUDED.retry_count,
+            model_version    = EXCLUDED.model_version,
+            latency_ms       = EXCLUDED.latency_ms,
+            token_cost       = EXCLUDED.token_cost
+    </insert>
+
+    <insert id="saveHandlerAction">
+        INSERT INTO tb_post_analysis (id, post_id, handler_action)
+        VALUES (#{id}, #{postId}, #{handlerAction})
+        ON CONFLICT (post_id) DO UPDATE SET
+            handler_action = EXCLUDED.handler_action
+    </insert>
+
+    <select id="selectByPostId" resultType="com.lucky.community.entity.PostAnalysis">
+        SELECT id, post_id, summary, similar_post_ids, risk_level, risk_categories, confidence,
+               evidence_json, reasoning, has_conflict, conflict_type, retry_count, handler_action,
+               model_version, latency_ms, token_cost, create_time
+        FROM tb_post_analysis
+        WHERE post_id = #{postId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByPostIds" resultType="com.lucky.community.entity.PostAnalysis">
+        SELECT id, post_id, summary, similar_post_ids, risk_level, risk_categories, confidence,
+               evidence_json, reasoning, has_conflict, conflict_type, retry_count, handler_action,
+               model_version, latency_ms, token_cost, create_time
+        FROM tb_post_analysis
+        WHERE post_id IN
+        <foreach collection="postIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </select>
+
+    <select id="countPubliclyVisible" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_post_analysis
+        WHERE post_id = #{postId}
+          AND (
+            handler_action IN ('未处置', '警告')
+            OR (risk_level = '无风险' AND handler_action IS NULL)
+          )
+    </select>
+</mapper>

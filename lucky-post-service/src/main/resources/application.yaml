@@ -1,0 +1,70 @@
+lucky:
+  auth:
+    interceptor-enabled: false
+
+server:
+  port: ${POST_SERVICE_PORT:8120}
+
+spring:
+  application:
+    name: lucky-post-service
+  config:
+    import:
+      - "optional:nacos:common.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+      - "optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      discovery:
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.lucky.community.bar.entity,com.lucky.community.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+post:
+  cache:
+    logical-ttl-seconds: ${POST_CACHE_LOGICAL_TTL:60}
+    hard-ttl-seconds: ${POST_CACHE_HARD_TTL:200}
+    ttl-jitter-percent: ${POST_CACHE_JITTER:10}
+    local-max-size: ${POST_CACHE_LOCAL_MAX_SIZE:10000}
+    load-lock-wait-millis: ${POST_CACHE_LOCK_WAIT_MS:200}
+    load-lock-lease-millis: ${POST_CACHE_LOCK_LEASE_MS:3000}
+    rebuild-lease-seconds: ${POST_CACHE_REBUILD_LEASE:5}
+    rebuild-pool-size: ${POST_CACHE_REBUILD_POOL:2}
+    image-query-pool-size: ${POST_CACHE_IMAGE_QUERY_POOL:4}
+    image-query-queue-capacity: ${POST_CACHE_IMAGE_QUERY_QUEUE:64}
+    warm-up-count: ${POST_CACHE_WARMUP_COUNT:50}
+    feed-ttl-seconds: ${POST_CACHE_FEED_TTL:2}
+    feed-cache-max-size: ${POST_CACHE_FEED_MAX_SIZE:500}
+  bloom:
+    expected-insertions: ${POST_BLOOM_EXPECTED:1000000}
+    false-probability: ${POST_BLOOM_FPP:0.01}
+
+bar:
+  cache:
+    ttl-seconds: ${BAR_CACHE_TTL:1800}
+
+ai:
+  moderation:
+    enabled: ${AI_MODERATION_ENABLED:true}
+    base-url: ${AI_MODERATION_BASE_URL:http://127.0.0.1:8000}
+    connect-timeout-ms: ${AI_MODERATION_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${AI_MODERATION_READ_TIMEOUT_MS:30000}
+    pool-size: ${AI_MODERATION_POOL_SIZE:2}
+    queue-capacity: ${AI_MODERATION_QUEUE_CAPACITY:200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

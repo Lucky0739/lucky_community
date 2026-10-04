@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.community.bar.mapper.BarManagerMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO tb_bar_manager (bar_id, user_id, grant_user_id, status)
+        VALUES (#{barId}, #{userId}, #{grantUserId}, #{status})
+    </insert>
+
+    <select id="countActiveByBarAndUser" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_bar_manager
+        WHERE bar_id = #{barId}
+          AND user_id = #{userId}
+          AND status = #{status}
+    </select>
+</mapper>
