@@ -1,4 +1,4 @@
-package com.lucky.community.bar.cache;
+package com.lucky.community.cache;
 
 import com.lucky.redis.RedisKeyManage;
 import lombok.RequiredArgsConstructor;

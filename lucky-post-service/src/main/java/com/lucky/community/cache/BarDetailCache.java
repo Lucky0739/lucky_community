@@ -1,8 +1,8 @@
-package com.lucky.community.bar.cache;
+package com.lucky.community.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucky.redis.RedisKeyManage;
-import com.lucky.community.bar.vo.BarVO;
+import com.lucky.community.vo.BarVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
