@@ -4,7 +4,7 @@ import com.lucky.common.Result;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.file.FileService;
-import com.lucky.community.common.PageResult;
+import com.lucky.common.vo.PageResult;
 import com.lucky.community.dto.CreatePostDTO;
 import com.lucky.community.dto.PostFeedQueryDTO;
 import com.lucky.community.dto.PostQueryDTO;
@@ -39,7 +39,7 @@ public class PostController {
     private final PostService postService;
     private final FileService fileService;
 
-    @PostMapping
+    @PostMapping("/create")
     public Result<PostDetailVO> create(@RequestBody @Valid CreatePostDTO createPostDTO) {
         return Result.success(postService.createPost(UserContext.getUserId(), createPostDTO));
     }
