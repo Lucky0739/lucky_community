@@ -20,8 +20,6 @@ public class PostDetailCacheEntry {
 
     /**
      * 是否已逻辑过期。null 视为已过期，宁可重建也不要漏判
-     * <p>{@code @JsonIgnore}：不标的话 Jackson 会把它当成一个属性一起序列化进缓存，
-     * 存进去的是写入那一刻的快照，读出来时已经没意义了，纯噪音
      */
     @JsonIgnore
     public boolean isLogicallyExpired() {

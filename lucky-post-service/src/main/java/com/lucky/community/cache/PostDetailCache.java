@@ -105,8 +105,8 @@ public class PostDetailCache {
         this.rebuildLeaseSeconds = rebuildLeaseSeconds;
     }
     /**
-     * 读：Caffeine → Redis → 查数据库（双重检测锁：Caffeine查不到就去Redis，Redis查不到就去获取锁，
-     * 拿到锁后再次查看redis是否有数据，没有的话最后去查询数据库）
+     * 读：Caffeine(L1) → Redis(L2) → 查库。
+     * L1 未命中时 {@code localCache.get} 本机单飞，同一个 JVM 只有一个线程走进 {@link #loadEntry}。
      */
     public PostDetailVO get(Long postId, Function<Long, PostDetailVO> loader) {
         PostDetailCacheEntry postDetailCacheEntry = localCache.get(postId, id -> loadEntry(id, loader));
@@ -137,21 +137,33 @@ public class PostDetailCache {
         putToL2(entry);
     }
     /**
-     * 失效 L1 + L2
+     * 失效 L1 + L2。请求路径用这个：L2 失败只打日志，不把已经提交的事务带挂。
+     * WAL CDC 用 {@link #evictStrict}，删除失败必须抛出，位点才不会偷偷前进。
      */
     public void evict(Long postId) {
+        try {
+            evictStrict(postId);
+        } catch (Exception e) {
+            log.warn("删除 L2 缓存失败，等待 WAL CDC 重试，postId={}", postId, e);
+        }
+    }
+
+    /**
+     * 严格失效：L2 DEL 失败抛给调用方。本机 L1 仍会先清掉。
+     */
+    public void evictStrict(Long postId) {
         if (postId == null) {
             return;
         }
         localCache.invalidate(postId);
-        try {
-            stringRedisTemplate.delete(RedisKeyManage.POST_DETAIL.key(postId));
-        } catch (Exception e) {
-            log.warn("删除 L2 缓存失败，postId={}", postId, e);
-        }
+        stringRedisTemplate.delete(RedisKeyManage.POST_DETAIL.key(postId));
         invalidator.publishEvict(postId);
     }
-    // ==================== 冷路径 ====================
+    // ==================== 冷路径：双重检测锁 ====================
+
+    /**
+     * 第一次检测：先看 L2。命中则回填 L1（由 Caffeine {@code get} 写入），未命中才去抢锁。
+     */
     private PostDetailCacheEntry loadEntry(Long postId, Function<Long, PostDetailVO> loader) {
         PostDetailCacheEntry postDetailCacheEntry = getFromL2(postId);
         if (postDetailCacheEntry != null) {
@@ -159,8 +171,13 @@ public class PostDetailCache {
         }
         return loadWithLock(postId, loader);
     }
+
     /**
-     * 双重检测锁：跨实例保证同一个帖子只有一个加载者
+     * 跨实例双重检测锁：同一个帖子同一时刻只有一个加载者写 L2。
+     * <pre>
+     * 第一次检测（锁外）→ 抢锁 → 第二次检测（锁内）→ 查库写 L2
+     * </pre>
+     * 等锁超时或锁服务异常时，再看一次 L2：持锁者可能已经写好了，不要再打一次库。
      */
     private PostDetailCacheEntry loadWithLock(Long postId, Function<Long, PostDetailVO> loader) {
         RLock lock = redissonClient.getLock(RedisKeyManage.POST_LOAD_LOCK.key(postId));
@@ -168,26 +185,34 @@ public class PostDetailCache {
         try {
             locked = lock.tryLock(loadLockWaitMillis, loadLockLeaseMillis, TimeUnit.MILLISECONDS);
             if (locked) {
-                // 二次检测：等锁期间别的实例可能已经建好了
                 PostDetailCacheEntry again = getFromL2(postId);
                 if (again != null) {
                     return again;
                 }
                 return loadAndStore(postId, loader);
             }
-            // 抢不到锁说明持锁者耗时超过了等待上限。不能继续等——锁持有者一旦卡住
-            log.debug("等待加载锁超时，降级直接回源，postId={}", postId);
-            return loadAndStore(postId, loader);
+            log.debug("等待加载锁超时，先复查 L2 再决定是否回源，postId={}", postId);
+            return loadUnlocked(postId, loader);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return loadAndStore(postId, loader);
+            return loadUnlocked(postId, loader);
         } catch (Exception e) {
-            // 锁服务（Redis）不可用不能把读接口带挂
-            log.warn("分布式加载锁异常，降级直接回源，postId={}", postId, e);
-            return loadAndStore(postId, loader);
+            log.warn("分布式加载锁异常，先复查 L2 再决定是否回源，postId={}", postId, e);
+            return loadUnlocked(postId, loader);
         } finally {
             unlockQuietly(lock, locked);
         }
+    }
+
+    /**
+     * 没拿到锁时的降级：第二次检测的补漏。L2 仍没有才回源，避免和持锁者重复打库。
+     */
+    private PostDetailCacheEntry loadUnlocked(Long postId, Function<Long, PostDetailVO> loader) {
+        PostDetailCacheEntry cached = getFromL2(postId);
+        if (cached != null) {
+            return cached;
+        }
+        return loadAndStore(postId, loader);
     }
     /**
      * 触发异步重建。两层去重：本机标记 + 跨实例非阻塞锁

@@ -23,8 +23,7 @@ import org.springframework.stereotype.Service;
  * 所以本类只持有 Caffeine 的 {@code Cache} bean，不持有那个服务。
  *
  * <h3>当前触发点</h3>
- * AI 审核完成（或失败）后会 {@code PostDetailCache#evict}，让详情里的
- * {@code analysisStatus} / 风险字段及时刷新。改帖 / 删帖同样 evict。
+ * AI 审核完成（或失败）后会 {@code PostDetailCache#evict}。改帖 / 删帖同样 evict。
  *
  * <h3>为什么用 Redisson 的 RTopic 而不是 Spring 的 RedisMessageListenerContainer</h3>
  * 前者复用已经接好的 {@code RedissonClient}，三十行就能写完；后者要额外配连接工厂、

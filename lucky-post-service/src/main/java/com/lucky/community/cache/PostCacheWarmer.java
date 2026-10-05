@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
  * </table>
  * Spring Boot 在 {@code finishRefresh()} 里启动 Tomcat 连接器，<b>早于</b> {@code ApplicationRunner}
  * 回调——这个窗口对布隆过滤器是致命的，对缓存预热则只是少省几次回源。见
- * {@code PostBloomFilterConfig} 里同样的判断。
+ * {@code BarBloomFilterConfig} 里同样的判断。
  *
  * <h3>为什么只预热「最新 N 帖」</h3>
  * 项目里没有访问计数器，用发布时间代替热度：雪花 ID 时间有序，{@code ORDER BY id DESC}
