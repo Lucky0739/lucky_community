@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lucky.community.cache.PostDetailCacheEntry;
+import com.lucky.community.vo.BarVO;
 import com.lucky.community.vo.PostSummaryVO;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -41,6 +42,12 @@ public class CacheConfig {
     @Value("${post.cache.feed-cache-max-size:500}")
     private long feedCacheMaxSize;
 
+    @Value("${bar.cache.page-ttl-seconds:10}")
+    private long barPageTtlSeconds;
+
+    @Value("${bar.cache.page-cache-max-size:64}")
+    private long barPageCacheMaxSize;
+
     @Bean("cacheObjectMapper")
     public ObjectMapper cacheObjectMapper() {
         return JsonMapper.builder()
@@ -63,6 +70,24 @@ public class CacheConfig {
         return Caffeine.newBuilder()
                 .expireAfterWrite(feedTtlSeconds, TimeUnit.SECONDS)
                 .maximumSize(feedCacheMaxSize)
+                .recordStats()
+                .build();
+    }
+
+    @Bean("barPageLocalCache")
+    public Cache<String, List<BarVO>> barPageLocalCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(barPageTtlSeconds, TimeUnit.SECONDS)
+                .maximumSize(barPageCacheMaxSize)
+                .recordStats()
+                .build();
+    }
+
+    @Bean("barCountLocalCache")
+    public Cache<String, Long> barCountLocalCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(barPageTtlSeconds, TimeUnit.SECONDS)
+                .maximumSize(8)
                 .recordStats()
                 .build();
     }
