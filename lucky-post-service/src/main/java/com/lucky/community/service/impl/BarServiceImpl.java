@@ -6,6 +6,7 @@ import com.lucky.common.enums.RoleType;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.file.FileService;
 import com.lucky.community.cache.BarDetailCache;
+import com.lucky.community.cache.BarPageCache;
 import com.lucky.community.dto.BarQueryDTO;
 import com.lucky.community.dto.CreateBarDTO;
 import com.lucky.community.dto.UpdateBarDTO;
@@ -43,6 +44,7 @@ public class BarServiceImpl implements BarService {
     private final UserReadMapper userReadMapper;
     private final PermissionSupport permissionSupport;
     private final BarDetailCache barDetailCache;
+    private final BarPageCache barPageCache;
     private final FileService fileService;
     private final LongBloomFilter barBloomFilter;
 
@@ -82,9 +84,17 @@ public class BarServiceImpl implements BarService {
             saved = bar;
         }
         UserBrief userBrief= userReadMapper.selectById(userId);
+        registerAfterCommit(barPageCache::invalidate);
         return toBarVO(saved, userBrief);
     }
 
+    /**
+     * 修改吧
+     * @param operatorId
+     * @param barId
+     * @param updateBarDTO
+     * @return
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BarVO updateBar(Long operatorId, Long barId, UpdateBarDTO updateBarDTO) {
@@ -124,7 +134,10 @@ public class BarServiceImpl implements BarService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException("吧名已被占用：" + newName);
         }
-        registerAfterCommit(() -> barDetailCache.evict(barId));
+        registerAfterCommit(() -> {
+            barDetailCache.evict(barId);
+            barPageCache.invalidate();
+        });
         BarVO barVO = loadBarVO(barId);
         if (barVO == null) {
             throw new BusinessException("贴吧不存在");
@@ -132,6 +145,11 @@ public class BarServiceImpl implements BarService {
         return barVO;
     }
 
+    /**
+     * 删除吧
+     * @param operatorId
+     * @param barId
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBar(Long operatorId, Long barId) {
@@ -140,7 +158,10 @@ public class BarServiceImpl implements BarService {
             throw new BusinessException("贴吧已停用");
         }
         barMapper.updateStatus(barId, Bar.STATUS_DISABLED);
-        registerAfterCommit(() -> barDetailCache.evict(barId));
+        registerAfterCommit(() -> {
+            barDetailCache.evict(barId);
+            barPageCache.invalidate();
+        });
     }
 
     private Bar requireManageable(Long operatorId, Long barId, String deniedMessage) {
@@ -167,24 +188,59 @@ public class BarServiceImpl implements BarService {
         });
     }
 
+    /**
+     * 分页查询吧
+     * <p>无关键词的首页和总数走本机缓存，挡高并发下的 COUNT / 首屏风暴；
+     * 翻页若已经超过总数则不再打 SELECT。关键词搜索不缓存——组合无穷，命中率趋近于零。
+     */
     @Override
     public PageResult<BarVO> pageBars(BarQueryDTO barQueryDTO) {
         int pageNum = barQueryDTO.getPageNum() == null ? 1 : barQueryDTO.getPageNum();
-        int pageSize = barQueryDTO.getPageSize() == null ? 10 : barQueryDTO.getPageSize();
+        int pageSize = barQueryDTO.getPageSize() == null ? 5 : barQueryDTO.getPageSize();
         String keyword = StringUtils.hasText(barQueryDTO.getKeyword()) ? barQueryDTO.getKeyword().trim() : null;
-        long total = barMapper.countPage(Bar.STATUS_NORMAL, keyword);
-        int offset = (pageNum - 1) * pageSize;
-        List<Bar> bars = barMapper.selectPage(Bar.STATUS_NORMAL, keyword, pageSize, offset);
+
+        long total;
+        List<BarVO> records;
+        if (keyword == null) {
+            total = barPageCache.getTotal(() -> barMapper.countPage(Bar.STATUS_NORMAL, null));
+            records = loadUnfilteredPage(pageNum, pageSize, total);
+        } else {
+            total = barMapper.countPage(Bar.STATUS_NORMAL, keyword);
+            records = loadRecords(keyword, pageSize, (pageNum - 1) * pageSize, total);
+        }
+
         PageResult<BarVO> result = new PageResult<>();
         result.setPageNum(pageNum);
         result.setPageSize(pageSize);
         result.setTotal(total);
-        if (bars.isEmpty()) {
-            result.setRecords(List.of());
-            return result;
-        }
-        result.setRecords(toVOs(bars));
+        result.setRecords(records);
         return result;
+    }
+
+    private List<BarVO> loadUnfilteredPage(int pageNum, int pageSize, long total) {
+        int offset = (pageNum - 1) * pageSize;
+        if (offset >= total) {
+            return List.of();
+        }
+        if (pageNum == 1) {
+            return barPageCache.getFirstPage(pageSize, () -> queryRecords(null, pageSize, 0));
+        }
+        return queryRecords(null, pageSize, offset);
+    }
+
+    private List<BarVO> loadRecords(String keyword, int pageSize, int offset, long total) {
+        if (offset >= total) {
+            return List.of();
+        }
+        return queryRecords(keyword, pageSize, offset);
+    }
+
+    private List<BarVO> queryRecords(String keyword, int pageSize, int offset) {
+        List<Bar> bars = barMapper.selectPage(Bar.STATUS_NORMAL, keyword, pageSize, offset);
+        if (bars.isEmpty()) {
+            return List.of();
+        }
+        return toVOs(bars);
     }
 
     private List<BarVO> toVOs(List<Bar> bars) {
@@ -212,10 +268,11 @@ public class BarServiceImpl implements BarService {
         return vo;
     }
 
+    /**
+     * 回源查库。布隆与 Redis 空值由 {@link BarDetailCache#get} 在调用本方法之前处理，
+     * 这里只负责组装；{@link #updateBar} 走这条路径时 ID 已经确认存在。
+     */
     private BarVO loadBarVO(Long barId) {
-        if (!barBloomFilter.mightContain(barId)) {
-            return null;
-        }
         Bar bar = barMapper.selectById(barId);
         if (bar == null) {
             return null;
