@@ -6,7 +6,7 @@ import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.HandlerActionDTO;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
-import com.lucky.user.vo.PageResult;
+import com.lucky.common.vo.PageResult;
 
 import java.util.List;
 

@@ -20,7 +20,7 @@ import com.lucky.user.service.PermissionService;
 import com.lucky.user.service.UserService;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
-import com.lucky.user.vo.PageResult;
+import com.lucky.common.vo.PageResult;
 import com.lucky.user.vo.RoleVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
