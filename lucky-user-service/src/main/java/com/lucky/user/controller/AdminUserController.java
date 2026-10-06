@@ -11,7 +11,7 @@ import com.lucky.user.dto.HandlerActionDTO;
 import com.lucky.user.service.AdminUserService;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
-import com.lucky.user.vo.PageResult;
+import com.lucky.common.vo.PageResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
