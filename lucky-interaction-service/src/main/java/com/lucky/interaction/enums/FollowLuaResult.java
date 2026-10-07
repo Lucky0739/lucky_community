@@ -9,7 +9,7 @@ import lombok.Getter;
 public enum FollowLuaResult {
 
     /** 写入关注关系且关注数 +1 */
-    OK(0L, null),
+    SUCCESS(0L, null),
 
     /** 已经关注过该用户 */
     ALREADY(1L, "已经关注该用户"),
@@ -38,9 +38,5 @@ public enum FollowLuaResult {
             }
         }
         return null;
-    }
-
-    public boolean isOk() {
-        return this == OK;
     }
 }
