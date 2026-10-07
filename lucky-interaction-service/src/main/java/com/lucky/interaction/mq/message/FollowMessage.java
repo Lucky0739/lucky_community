@@ -1,4 +1,4 @@
-package com.lucky.interaction.mq;
+package com.lucky.interaction.mq.message;
 
 import lombok.Data;
 
@@ -12,4 +12,6 @@ public class FollowMessage {
     private Long userId;
     private Long followUserId;
     private Long followTime;
+    /** {@link com.lucky.interaction.constant.FollowConstant#MQ_TAG} 或 {@link com.lucky.interaction.constant.FollowConstant#MQ_UNFOLLOW_TAG} */
+    private String action;
 }
