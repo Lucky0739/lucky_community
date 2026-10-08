@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.UserInfoStatMapper">
+
+    <update id="increaseFollowee">
+        UPDATE tb_user_info
+        SET followee = COALESCE(followee, 0) + 1
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="decreaseFollowee">
+        UPDATE tb_user_info
+        SET followee = GREATEST(COALESCE(followee, 0) - 1, 0)
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="increaseLikeCount">
+        UPDATE tb_user_info
+        SET like_count = COALESCE(like_count, 0) + 1
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="decreaseLikeCount">
+        UPDATE tb_user_info
+        SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0)
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="increaseFans">
+        UPDATE tb_user_info
+        SET fans = COALESCE(fans, 0) + 1
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="decreaseFans">
+        UPDATE tb_user_info
+        SET fans = GREATEST(COALESCE(fans, 0) - 1, 0)
+        WHERE user_id = #{userId}
+    </update>
+</mapper>

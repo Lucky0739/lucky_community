@@ -71,12 +71,13 @@ public class UserServiceImpl implements UserService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException("该手机号已注册");
         }
-        // 3. 用户扩展信息：粉丝数/关注数初始为 0
+        // 3. 用户扩展信息：粉丝数、关注数、获赞数初始为 0
         UserInfo userInfo = new UserInfo();
         userInfo.setId(IdUtil.getSnowflakeNextId());
         userInfo.setUserId(id);
         userInfo.setFans(0);
         userInfo.setFollowee(0);
+        userInfo.setLikeCount(0);
         userInfoMapper.insert(userInfo);
         // 4. 手机号记录
         UserPhone userPhone = new UserPhone();

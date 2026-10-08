@@ -48,7 +48,7 @@ public class UserController {
      * 短 token(access)：放入响应体，前端存内存，请求头携带
      * 长 token(refresh)：写入 HttpOnly Cookie，用于过期后静默续期
      */
-    @PostMapping
+    @PostMapping("/login")
     public Result<LoginVO> login(@RequestBody LoginDTO loginDTO, HttpServletResponse response) {
         LoginVO loginVO = userService.login(loginDTO);
         RefreshCookieUtil.write(response, loginVO.getRefreshToken(), refreshExpireSeconds, cookieSecure);
