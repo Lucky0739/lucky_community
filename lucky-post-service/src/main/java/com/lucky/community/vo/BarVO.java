@@ -39,4 +39,10 @@ public class BarVO {
 
     /** 创建时间 */
     private LocalDateTime createTime;
+
+    /**
+     * 吧外预览：每个吧只带最新一条可见帖。
+     * 进吧后的完整列表走帖子流，并带上 barId。
+     */
+    private PostSummaryVO latestPost;
 }

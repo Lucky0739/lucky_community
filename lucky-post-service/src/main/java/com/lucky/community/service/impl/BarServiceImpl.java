@@ -15,7 +15,9 @@ import com.lucky.community.entity.BarManager;
 import com.lucky.community.mapper.BarManagerMapper;
 import com.lucky.community.mapper.BarMapper;
 import com.lucky.community.service.BarService;
+import com.lucky.community.service.PostService;
 import com.lucky.community.vo.BarVO;
+import com.lucky.community.vo.PostSummaryVO;
 import com.lucky.common.vo.PageResult;
 import com.lucky.community.support.PermissionSupport;
 import com.lucky.community.support.entity.UserBrief;
@@ -47,6 +49,7 @@ public class BarServiceImpl implements BarService {
     private final BarPageCache barPageCache;
     private final FileService fileService;
     private final LongBloomFilter barBloomFilter;
+    private final PostService postService;
 
     /**
      * 创建吧
@@ -65,25 +68,33 @@ public class BarServiceImpl implements BarService {
         bar.setOwnerUserId(userId);
         bar.setFollowCount(0);
         bar.setAvatar(createBarDTO.getAvatar());
+        // 默认为1（正常状态）
         bar.setStatus(Bar.STATUS_NORMAL);
         try {
+            // 新增插入数据库
             barMapper.insert(bar);
         } catch (DuplicateKeyException e) {
+            // 数据库设置唯一贴吧名
             throw new BusinessException("吧名已被占用：" + name);
         }
+        // 放入布隆过滤器
         barBloomFilter.add(bar.getId());
         BarManager barManager = new BarManager();
         barManager.setBarId(bar.getId());
         barManager.setUserId(userId);
         barManager.setGrantUserId(userId);
         barManager.setStatus(BarManager.STATUS_ACTIVE);
+        // 新增插入贴吧-用户对应的数据
         barManagerMapper.insert(barManager);
+        // 给创建帖吧的用户增加吧务角色身份
         permissionSupport.bindRoleIfAbsent(userId, RoleType.BAR_ADMIN);
         Bar saved = barMapper.selectById(bar.getId());
         if (saved == null) {
             saved = bar;
         }
+        // 查询用户id，昵称和头像
         UserBrief userBrief= userReadMapper.selectById(userId);
+        // 事务提交后执行
         registerAfterCommit(barPageCache::invalidate);
         return toBarVO(saved, userBrief);
     }
@@ -98,7 +109,13 @@ public class BarServiceImpl implements BarService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BarVO updateBar(Long operatorId, Long barId, UpdateBarDTO updateBarDTO) {
-        Bar bar = requireManageable(operatorId, barId, "仅吧主或平台管理员可修改贴吧");
+        Bar bar = barMapper.selectById(barId);
+        if (bar == null) {
+            throw new BusinessException("贴吧不存在");
+        }
+        if (!Objects.equals(operatorId, bar.getOwnerUserId())) {
+            throw new BusinessException("只能修改自己发布的贴吧");
+        }
         String newName = null;
         if (updateBarDTO.getName() != null) {
             newName = updateBarDTO.getName().trim();
@@ -175,6 +192,7 @@ public class BarServiceImpl implements BarService {
         throw new BusinessException(deniedMessage);
     }
 
+
     private void registerAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             action.run();
@@ -209,12 +227,25 @@ public class BarServiceImpl implements BarService {
             records = loadRecords(keyword, pageSize, (pageNum - 1) * pageSize, total);
         }
 
+        attachLatestPost(records);
         PageResult<BarVO> result = new PageResult<>();
         result.setPageNum(pageNum);
         result.setPageSize(pageSize);
         result.setTotal(total);
         result.setRecords(records);
         return result;
+    }
+
+    /** 吧列表只挂每个吧最新一条帖。完整列表必须进吧后再查。 */
+    private void attachLatestPost(List<BarVO> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        List<Long> barIds = records.stream().map(BarVO::getBarId).toList();
+        Map<Long, PostSummaryVO> latest = postService.latestVisibleByBarIds(barIds);
+        for (BarVO bar : records) {
+            bar.setLatestPost(latest.get(bar.getBarId()));
+        }
     }
 
     private List<BarVO> loadUnfilteredPage(int pageNum, int pageSize, long total) {
@@ -269,14 +300,15 @@ public class BarServiceImpl implements BarService {
     }
 
     /**
-     * 回源查库。布隆与 Redis 空值由 {@link BarDetailCache#get} 在调用本方法之前处理，
-     * 这里只负责组装；{@link #updateBar} 走这条路径时 ID 已经确认存在。
+     * 回源查库
      */
     private BarVO loadBarVO(Long barId) {
         Bar bar = barMapper.selectById(barId);
         if (bar == null) {
             return null;
         }
+        // 库里存在却回源了，说明布隆可能漏了它（过滤器丢失/未初始化/add 曾失败降级）→ 补回，下次直接命中
+        barBloomFilter.backfill(barId);
         Long ownerUserId = bar.getOwnerUserId();
         return toBarVO(bar, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
     }

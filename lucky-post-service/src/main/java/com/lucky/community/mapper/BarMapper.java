@@ -19,6 +19,13 @@ public interface BarMapper {
 
     long countPage(@Param("status") Integer status, @Param("keyword") String keyword);
 
+    long countAdminPage(@Param("status") Integer status, @Param("keyword") String keyword);
+
+    List<Bar> selectAdminPage(@Param("status") Integer status,
+                              @Param("keyword") String keyword,
+                              @Param("limit") int limit,
+                              @Param("offset") int offset);
+
     List<Bar> selectPage(@Param("status") Integer status,
                          @Param("keyword") String keyword,
                          @Param("limit") int limit,

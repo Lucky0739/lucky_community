@@ -35,6 +35,11 @@ public class BarController {
     private final BarService barService;
     private final FileService fileService;
 
+    /**
+     * 建贴吧
+     * @param createBarDTO
+     * @return
+     */
     @PostMapping("/create")
     public Result<BarVO> create(@RequestBody @Valid CreateBarDTO createBarDTO) {
         return Result.success(barService.createBar(UserContext.getUserId(), createBarDTO));
