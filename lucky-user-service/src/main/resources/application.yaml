@@ -16,10 +16,49 @@ spring:
       config:
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+  # 本地兜底：Nacos 未启动或未发布 common.yaml 时仍可启动（与 config/nacos/common.yaml 一致）
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/community?currentSchema=community,public}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6380}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+jwt:
+  secret: ${JWT_SECRET:lucky-community-local-dev-only-jwt-secret-key-32chars+}
+  access-expire: ${JWT_ACCESS_EXPIRE:1800}
+  refresh-expire: ${JWT_REFRESH_EXPIRE:604800}
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
+  refresh-grace: ${JWT_REFRESH_GRACE:60}
+
+login:
+  max-fail-count: ${LOGIN_MAX_FAIL_COUNT:5}
+  fail-window-seconds: ${LOGIN_FAIL_WINDOW_SECONDS:900}
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:community}
 
 mybatis:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.lucky.user.entity
+  configuration:
+    map-underscore-to-camel-case: true
 
 management:
   endpoints:
