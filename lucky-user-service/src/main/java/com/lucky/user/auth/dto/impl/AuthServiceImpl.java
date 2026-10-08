@@ -1,9 +1,11 @@
-package com.lucky.user.auth;
+package com.lucky.user.auth.dto.impl;
 
 import com.lucky.common.auth.JwtUtil;
 import com.lucky.common.auth.TokenRedisService;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.exception.UnauthorizedException;
+import com.lucky.user.auth.AuthService;
+import com.lucky.user.auth.TokenIssuer;
 import com.lucky.user.auth.dto.RefreshResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +77,10 @@ public class AuthServiceImpl implements AuthService {
         tokenRedisService.kickOut(userId);
     }
 
+    /**
+     * 清空对应的token
+     * @param userId
+     */
     @Override
     public void revoke(Long userId) {
         tokenRedisService.revokeUser(userId, jwtUtil.getRefreshExpire());
