@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/bar")
@@ -67,14 +69,24 @@ public class BarController {
         return Result.success(barService.updateBar(UserContext.getUserId(), barId, updateBarDTO));
     }
 
+    /**
+     * 删除/停用贴吧
+     * @param barId
+     * @return
+     */
     @DeleteMapping("/{barId}")
     public Result<String> delete(@PathVariable("barId") Long barId) {
         barService.deleteBar(UserContext.getUserId(), barId);
         return Result.success();
     }
 
+    /**
+     * 分页查询贴吧
+     * @param barQueryDTO
+     * @return
+     */
     @GetMapping("/page")
-    public Result<java.util.List<BarVO>> page(@ModelAttribute @Valid BarQueryDTO barQueryDTO) {
+    public Result<List<BarVO>> page(@ModelAttribute @Valid BarQueryDTO barQueryDTO) {
         PageResult<BarVO> page = barService.pageBars(barQueryDTO);
         return Result.success(page.getRecords(), page.getTotal());
     }

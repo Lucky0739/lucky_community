@@ -165,13 +165,14 @@ public class BarServiceImpl implements BarService {
     }
 
     /**
-     * 删除吧
+     * 删除帖吧
      * @param operatorId
      * @param barId
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBar(Long operatorId, Long barId) {
+        // 检验删帖吧的用户是否吧主或者管理员
         Bar bar = requireManageable(operatorId, barId, "仅吧主或平台管理员可删除贴吧");
         if (bar.getStatus() != null && bar.getStatus() == Bar.STATUS_DISABLED) {
             throw new BusinessException("贴吧已停用");
@@ -208,17 +209,20 @@ public class BarServiceImpl implements BarService {
         });
     }
 
+    /** 贴吧列表每页条数固定，不采用请求里的 pageSize，避免首页缓存按条数被打散。 */
+    private static final int BAR_PAGE_SIZE = 10;
+
     /**
      * 分页查询吧
-     * <p>无关键词的首页和总数走本机缓存，挡高并发下的 COUNT / 首屏风暴；
+     * 无关键词的首页和总数走本机缓存，挡高并发下的 COUNT / 首屏风暴；
      * 翻页若已经超过总数则不再打 SELECT。关键词搜索不缓存——组合无穷，命中率趋近于零。
+     * 页码由请求传入，每页条数固定为 {@link #BAR_PAGE_SIZE}。
      */
     @Override
     public PageResult<BarVO> pageBars(BarQueryDTO barQueryDTO) {
-        int pageNum = barQueryDTO.getPageNum() == null ? 1 : barQueryDTO.getPageNum();
-        int pageSize = barQueryDTO.getPageSize() == null ? 5 : barQueryDTO.getPageSize();
+        int pageNum = barQueryDTO.getPageNum() == null ? 1 : barQueryDTO.getPageNum() ;
+        int pageSize = BAR_PAGE_SIZE;
         String keyword = StringUtils.hasText(barQueryDTO.getKeyword()) ? barQueryDTO.getKeyword().trim() : null;
-
         long total;
         List<BarVO> records;
         if (keyword == null) {
@@ -228,7 +232,6 @@ public class BarServiceImpl implements BarService {
             total = barMapper.countPage(Bar.STATUS_NORMAL, keyword);
             records = loadRecords(keyword, pageSize, (pageNum - 1) * pageSize, total);
         }
-
         attachLatestPost(records);
         PageResult<BarVO> result = new PageResult<>();
         result.setPageNum(pageNum);
