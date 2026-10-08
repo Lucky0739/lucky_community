@@ -3,7 +3,6 @@ package com.lucky.user.service;
 import com.lucky.user.dto.AdminUpdateProfileDTO;
 import com.lucky.user.dto.AdminUserQueryDTO;
 import com.lucky.user.dto.AppointBarAdminDTO;
-import com.lucky.user.dto.HandlerActionDTO;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
 import com.lucky.common.vo.PageResult;
@@ -48,10 +47,4 @@ public interface AdminUserService {
      * @throws com.lucky.common.exception.BusinessException 入参为空 / 删自己 / 任一用户不存在 / 任一是平台管理员
      */
     void deleteUsers(Long operatorId, List<Long> userIds);
-
-    /**
-     * 平台管理员对一条帖子做人工处置，写入 {@code tb_post_analysis.handler_action}。
-     * @throws com.lucky.common.exception.BusinessException 非平台管理员、帖子不存在、结论不在允许取值内、封禁对象不能删
-     */
-    void reviewPost(Long operatorId, HandlerActionDTO dto);
 }

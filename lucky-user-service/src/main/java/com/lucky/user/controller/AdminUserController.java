@@ -7,7 +7,6 @@ import com.lucky.user.dto.AdminUpdateProfileDTO;
 import com.lucky.user.dto.AdminUserQueryDTO;
 import com.lucky.user.dto.AppointBarAdminDTO;
 import com.lucky.user.dto.BatchDeleteUserDTO;
-import com.lucky.user.dto.HandlerActionDTO;
 import com.lucky.user.service.AdminUserService;
 import com.lucky.user.vo.AdminUserDetailVO;
 import com.lucky.user.vo.AdminUserVO;
@@ -56,11 +55,11 @@ public class AdminUserController {
     }
 
     /**
-     * 编辑用户资料：请求体里的 userId 是「被编辑的人」，操作人取 access token
+     * 编辑用户资料
      */
     @PostMapping("/update")
-    public Result<String> update(@RequestBody @Valid AdminUpdateProfileDTO dto) {
-        adminUserService.updateUser(UserContext.getUserId(), dto);
+    public Result<String> update(@RequestBody @Valid AdminUpdateProfileDTO adminUpdateProfileDTO) {
+        adminUserService.updateUser(UserContext.getUserId(), adminUpdateProfileDTO);
         return Result.success();
     }
 
@@ -70,15 +69,6 @@ public class AdminUserController {
     @PostMapping("/bar-admin/appoint")
     public Result<String> appointBarAdmin(@RequestBody @Valid AppointBarAdminDTO dto) {
         adminUserService.appointBarAdmin(UserContext.getUserId(), dto);
-        return Result.success();
-    }
-
-    /**
-     * 人工处置一条帖子。结论写入 handler_action：未处置、警告、删帖、封禁。
-     */
-    @PostMapping("/handler-action")
-    public Result<String> reviewPost(@RequestBody @Valid HandlerActionDTO dto) {
-        adminUserService.reviewPost(UserContext.getUserId(), dto);
         return Result.success();
     }
 

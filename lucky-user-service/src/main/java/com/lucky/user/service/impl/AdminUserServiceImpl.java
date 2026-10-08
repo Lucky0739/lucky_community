@@ -6,7 +6,6 @@ import com.lucky.user.auth.AuthService;
 import com.lucky.user.dto.AdminUpdateProfileDTO;
 import com.lucky.user.dto.AdminUserQueryDTO;
 import com.lucky.user.dto.AppointBarAdminDTO;
-import com.lucky.user.dto.HandlerActionDTO;
 import com.lucky.user.entity.BarManager;
 import com.lucky.user.entity.Role;
 import com.lucky.user.entity.User;
@@ -54,23 +53,25 @@ public class AdminUserServiceImpl implements AdminUserService {
     /**
      * 分页查询用户
      * @param operatorId 操作人(当前登录的平台管理员)
-     * @param query      筛选条件，phone 前缀匹配 / nickName 模糊匹配
+     * @param adminUserQueryDTO      筛选条件，phone 前缀匹配 / nickName 模糊匹配
      * @return
      */
     @Override
-    public PageResult<AdminUserVO> pageUsers(Long operatorId, AdminUserQueryDTO query) {
+    public PageResult<AdminUserVO> pageUsers(Long operatorId, AdminUserQueryDTO adminUserQueryDTO) {
+        // 检验操作用户是否管理员身份
         requirePlatformAdmin(operatorId);
-        String phone = StringUtils.hasText(query.getPhone()) ? query.getPhone() : null;
-        String nickName = StringUtils.hasText(query.getNickName()) ? query.getNickName() : null;
-        Integer pageNum = query.getPageNum();
+        String phone = StringUtils.hasText(adminUserQueryDTO.getPhone()) ? adminUserQueryDTO.getPhone() : null;
+        String nickName = StringUtils.hasText(adminUserQueryDTO.getNickName()) ? adminUserQueryDTO.getNickName() : null;
+        Integer pageNum = adminUserQueryDTO.getPageNum();
         if(pageNum == null){
             pageNum=1;
         }
-        Integer pageSize = query.getPageSize();
+        Integer pageSize = adminUserQueryDTO.getPageSize();
         if(pageSize == null){
-            pageNum=10;
+            pageSize=10;
         }
         int offset = (pageNum - 1) * pageSize;
+        // 查询用户数量
         long total = userMapper.countByFilter(phone, nickName);
         if (total == 0) {
             return new PageResult<>(List.of(), 0);
@@ -95,7 +96,9 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     @Override
     public AdminUserDetailVO getUserDetail(Long operatorId, Long userId) {
+        // 检验是否平台管理员
         requirePlatformAdmin(operatorId);
+        // 查询对应用户
         User user = requireActiveUser(userId);
         UserInfo userInfo = userInfoMapper.selectByUserId(userId);
         AdminUserDetailVO adminUserDetailVO = new AdminUserDetailVO();
@@ -111,6 +114,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             adminUserDetailVO.setIntroduce(userInfo.getIntroduce());
             adminUserDetailVO.setFans(userInfo.getFans());
             adminUserDetailVO.setFollowee(userInfo.getFollowee());
+            adminUserDetailVO.setLikeCount(userInfo.getLikeCount());
             adminUserDetailVO.setGender(userInfo.getGender());
             adminUserDetailVO.setBirthday(userInfo.getBirthday());
         }
@@ -124,13 +128,14 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void updateUser(Long operatorId, AdminUpdateProfileDTO updateProfileDTO) {
         requirePlatformAdmin(operatorId);
-        // userId 上有 @NotNull，Controller 已拦一道；这里再兜一次，
-        // 保证直接以编程方式调用本方法时也不会「改到空目标」
+        // 获取被编辑人id
         Long userId = updateProfileDTO.getUserId();
+        // 检验userId是否为空
         if (userId == null) {
             throw new BusinessException("用户ID不能为空");
         }
-        // 由 @TableLogic 自动追加 AND deleted=0，已删用户查不到
+        // 根据userId查出来的未删除的用户
+        System.out.println("========"+userMapper.selectById(userId));
         if (userMapper.selectById(userId) == null) {
             throw new BusinessException("用户不存在");
         }
@@ -174,12 +179,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         ids.forEach(this::applyDelete);
     }
 
-    @Override
-    public void reviewPost(Long operatorId, HandlerActionDTO dto) {
-        requirePlatformAdmin(operatorId);
-        throw new BusinessException("帖子处置尚未迁入用户服务");
-    }
-
     /**
      * 删除用户的检验逻辑方法
      * @param operatorId
@@ -207,14 +206,17 @@ public class AdminUserServiceImpl implements AdminUserService {
      * @param userId
      */
     private void applyDelete(Long userId) {
+        // 吧该用户对应的吧撤销
         int revoked = barManagerMapper.revokeByUserId(userId);
         if (revoked > 0) {
             log.warn("删除用户时级联撤销吧务任命，userId={}，影响 {} 条", userId, revoked);
         }
+        // 清空被删除用户对应的电话号码并设置逻辑删除
         int rows = userMapper.logicalDeleteAndReleasePhone(userId);
         if (rows == 0) {
             throw new BusinessException("用户不存在");
         }
+        // 逻辑删除对应的角色用户表
         userRoleMapper.logicalDeleteByUserId(userId);
         authService.revoke(userId);
     }
@@ -225,6 +227,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
     }
 
+    // 查询用户表
     private User requireActiveUser(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
