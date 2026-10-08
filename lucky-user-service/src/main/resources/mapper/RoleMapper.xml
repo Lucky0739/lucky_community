@@ -3,8 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lucky.user.mapper.RoleMapper">
 
-    <select id="selectByRoleCode" resultType="com.lucky.user.entity.Role">
-        SELECT id, role_name, role_code, description, create_time, update_time
+    <select id="selectByRoleId" resultType="java.lang.Long">
+        SELECT id
         FROM tb_role
         WHERE role_code = #{roleCode}
     </select>
