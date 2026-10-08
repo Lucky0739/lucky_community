@@ -45,11 +45,22 @@ public class BarController {
         return Result.success(barService.createBar(UserContext.getUserId(), createBarDTO));
     }
 
+    /**
+     * 上传贴吧的封面图（贴吧吧头像）
+     * @param file
+     * @return
+     */
     @PostMapping("/avatar")
     public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
         return Result.success(fileService.uploadImage(file, FileService.DIR_BAR));
     }
 
+    /**
+     * 编辑修改贴吧
+     * @param barId
+     * @param updateBarDTO
+     * @return
+     */
     @PutMapping("/{barId}")
     public Result<BarVO> update(@PathVariable("barId") Long barId,
                                 @RequestBody @Valid UpdateBarDTO updateBarDTO) {

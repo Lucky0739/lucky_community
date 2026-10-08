@@ -109,6 +109,7 @@ public class BarServiceImpl implements BarService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public BarVO updateBar(Long operatorId, Long barId, UpdateBarDTO updateBarDTO) {
+        // 根据barId查询
         Bar bar = barMapper.selectById(barId);
         if (bar == null) {
             throw new BusinessException("贴吧不存在");
@@ -151,6 +152,7 @@ public class BarServiceImpl implements BarService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException("吧名已被占用：" + newName);
         }
+        // 事务执行完之后写入缓存
         registerAfterCommit(() -> {
             barDetailCache.evict(barId);
             barPageCache.invalidate();
