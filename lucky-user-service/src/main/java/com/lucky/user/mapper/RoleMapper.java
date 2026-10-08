@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface RoleMapper {
 
-    Role selectByRoleCode(@Param("roleCode") String roleCode);
+    Long selectByRoleId(@Param("roleCode") String roleCode);
 
     List<Role> selectByIds(@Param("list") List<Long> ids);
 }
