@@ -86,14 +86,14 @@ public class UserServiceImpl implements UserService {
         userPhone.setPhone(registerDTO.getPhone());
         userPhoneMapper.insert(userPhone);
         // 5. 默认绑定普通吧友角色：按 role_code 查，避免角色 id 调整后误绑高权限角色
-        Role defaultRole = roleMapper.selectByRoleCode(RoleType.NORMAL_USER.getCode());
-        if (defaultRole == null) {
+        Long defaultRoleId = roleMapper.selectByRoleId(RoleType.NORMAL_USER.getCode());
+        if (defaultRoleId == null) {
             throw new BusinessException("默认角色未配置");
         }
         UserRole userRole = new UserRole();
         userRole.setId(IdUtil.getSnowflakeNextId());
         userRole.setUserId(id);
-        userRole.setRoleId(defaultRole.getId());
+        userRole.setRoleId(defaultRoleId);
         userRoleMapper.insert(userRole);
     }
 

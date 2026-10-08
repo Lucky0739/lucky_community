@@ -66,17 +66,17 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public void bindRoleIfAbsent(Long userId, RoleType roleType) {
-        Role role = roleMapper.selectByRoleCode(roleType.getCode());
-        if (role == null) {
+        Long roleId = roleMapper.selectByRoleId(roleType.getCode());
+        if (roleId == null) {
             throw new BusinessException("角色未配置：" + roleType.getCode());
         }
-        if (userRoleMapper.existsByUserIdAndRoleId(userId, role.getId())) {
+        if (userRoleMapper.existsByUserIdAndRoleId(userId, roleId)) {
             return;
         }
         UserRole userRole = new UserRole();
         userRole.setId(IdUtil.getSnowflakeNextId());
         userRole.setUserId(userId);
-        userRole.setRoleId(role.getId());
+        userRole.setRoleId(roleId);
         userRoleMapper.insert(userRole);
     }
 
