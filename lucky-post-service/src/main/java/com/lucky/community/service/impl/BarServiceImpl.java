@@ -7,6 +7,7 @@ import com.lucky.common.exception.BusinessException;
 import com.lucky.common.file.FileService;
 import com.lucky.community.cache.BarDetailCache;
 import com.lucky.community.cache.BarPageCache;
+import com.lucky.community.constant.BarConstant;
 import com.lucky.community.dto.BarQueryDTO;
 import com.lucky.community.dto.CreateBarDTO;
 import com.lucky.community.dto.UpdateBarDTO;
@@ -157,11 +158,12 @@ public class BarServiceImpl implements BarService {
             barDetailCache.evict(barId);
             barPageCache.invalidate();
         });
-        BarVO barVO = loadBarVO(barId);
-        if (barVO == null) {
+        Bar saved = barMapper.selectById(barId);
+        if (saved == null) {
             throw new BusinessException("贴吧不存在");
         }
-        return barVO;
+        Long ownerUserId = saved.getOwnerUserId();
+        return toBarVO(saved, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
     }
 
     /**
@@ -178,6 +180,7 @@ public class BarServiceImpl implements BarService {
             throw new BusinessException("贴吧已停用");
         }
         barMapper.updateStatus(barId, Bar.STATUS_DISABLED);
+        // 清空该贴吧缓存放到事务后执行
         registerAfterCommit(() -> {
             barDetailCache.evict(barId);
             barPageCache.invalidate();
@@ -196,6 +199,7 @@ public class BarServiceImpl implements BarService {
     }
 
 
+    // 事务执行完才执行的方法
     private void registerAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             action.run();
@@ -209,19 +213,16 @@ public class BarServiceImpl implements BarService {
         });
     }
 
-    /** 贴吧列表每页条数固定，不采用请求里的 pageSize，避免首页缓存按条数被打散。 */
-    private static final int BAR_PAGE_SIZE = 10;
-
     /**
      * 分页查询吧
      * 无关键词的首页和总数走本机缓存，挡高并发下的 COUNT / 首屏风暴；
      * 翻页若已经超过总数则不再打 SELECT。关键词搜索不缓存——组合无穷，命中率趋近于零。
-     * 页码由请求传入，每页条数固定为 {@link #BAR_PAGE_SIZE}。
+     * 页码由请求传入，每页条数固定为 {@link BarConstant#PAGE_SIZE}。
      */
     @Override
     public PageResult<BarVO> pageBars(BarQueryDTO barQueryDTO) {
-        int pageNum = barQueryDTO.getPageNum() == null ? 1 : barQueryDTO.getPageNum() ;
-        int pageSize = BAR_PAGE_SIZE;
+        int pageNum = barQueryDTO.getPageNum() == null ? 1:barQueryDTO.getPageNum();
+        int pageSize = BarConstant.PAGE_SIZE;
         String keyword = StringUtils.hasText(barQueryDTO.getKeyword()) ? barQueryDTO.getKeyword().trim() : null;
         long total;
         List<BarVO> records;
@@ -296,26 +297,21 @@ public class BarServiceImpl implements BarService {
     }
 
     @Override
-    public BarVO getBar(Long barId) {
-        BarVO vo = barDetailCache.get(barId, this::loadBarVO);
-        if (vo == null) {
+    public BarVO getBarDetail(Long barId) {
+        BarVO barVO = barDetailCache.get(barId, id -> {
+            Bar bar = barMapper.selectById(id);
+            if (bar == null) {
+                return null;
+            }
+            // 库里存在却回源了，说明布隆可能漏了它，补回后下次可以直接命中
+            barBloomFilter.backfill(id);
+            Long ownerUserId = bar.getOwnerUserId();
+            return toBarVO(bar, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
+        });
+        if (barVO == null) {
             throw new BusinessException("贴吧不存在");
         }
-        return vo;
-    }
-
-    /**
-     * 回源查库
-     */
-    private BarVO loadBarVO(Long barId) {
-        Bar bar = barMapper.selectById(barId);
-        if (bar == null) {
-            return null;
-        }
-        // 库里存在却回源了，说明布隆可能漏了它（过滤器丢失/未初始化/add 曾失败降级）→ 补回，下次直接命中
-        barBloomFilter.backfill(barId);
-        Long ownerUserId = bar.getOwnerUserId();
-        return toBarVO(bar, ownerUserId == null ? null : userReadMapper.selectById(ownerUserId));
+        return barVO;
     }
 
     private BarVO toBarVO(Bar bar, UserBrief userBrief) {

@@ -91,8 +91,13 @@ public class BarController {
         return Result.success(page.getRecords(), page.getTotal());
     }
 
+    /**
+     * 查看贴吧详情
+     * @param barId
+     * @return
+     */
     @GetMapping("/{barId}")
     public Result<BarVO> detail(@PathVariable("barId") Long barId) {
-        return Result.success(barService.getBar(barId));
+        return Result.success(barService.getBarDetail(barId));
     }
 }

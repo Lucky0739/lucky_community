@@ -16,5 +16,5 @@ public interface BarService {
 
     PageResult<BarVO> pageBars(BarQueryDTO query);
 
-    BarVO getBar(Long barId);
+    BarVO getBarDetail(Long barId);
 }
