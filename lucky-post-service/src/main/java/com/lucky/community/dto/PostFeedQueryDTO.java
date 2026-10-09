@@ -1,6 +1,7 @@
 package com.lucky.community.dto;
 
 import com.lucky.common.dto.PageQueryDTO;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +12,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class PostFeedQueryDTO extends PageQueryDTO {
 
-    /** 贴吧ID，为空表示不限吧 */
+    /** 贴吧ID。帖子只在吧内列出，不进吧不能翻这个吧的其他帖 */
+    @NotNull(message = "请先进入贴吧")
     private Long barId;
 
     /** 作者user_id，为空表示不限作者 */

@@ -1,4 +1,4 @@
-package com.lucky.community.bar.dto;
+package com.lucky.community.dto;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
