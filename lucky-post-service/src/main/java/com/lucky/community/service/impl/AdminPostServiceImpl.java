@@ -70,13 +70,14 @@ public class AdminPostServiceImpl implements AdminPostService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void reviewPost(Long operatorId, AdminReviewPostDTO dto) {
+    public void reviewPost(Long operatorId, AdminReviewPostDTO adminReviewPostDTO) {
+        // 检验是否管理员
         requirePlatformAdmin(operatorId);
-        String action = dto.getHandlerAction().trim();
+        String action = adminReviewPostDTO.getHandlerAction().trim();
         if (!REVIEW_ACTIONS.contains(action)) {
             throw new BusinessException("审核结论只能是未处置、警告、删帖、封禁");
         }
-        Post post = postMapper.selectById(dto.getPostId());
+        Post post = postMapper.selectById(adminReviewPostDTO.getPostId());
         if (post == null) {
             throw new BusinessException("帖子不存在");
         }
@@ -92,6 +93,7 @@ public class AdminPostServiceImpl implements AdminPostService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deletePost(Long operatorId, Long postId) {
+        // 检验是否管理员
         requirePlatformAdmin(operatorId);
         Post post = postMapper.selectById(postId);
         if (post == null) {
