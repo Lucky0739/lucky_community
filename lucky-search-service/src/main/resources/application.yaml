@@ -1,0 +1,27 @@
+server:
+  port: ${SEARCH_SERVICE_PORT:8007}
+
+spring:
+  application:
+    name: lucky-search-service
+  config:
+    import:
+      - "optional:nacos:common.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+      - "optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:LUCKY_COMMUNITY}&refreshEnabled=true"
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      discovery:
+        ip: ${NACOS_DISCOVERY_IP:127.0.0.1}
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://127.0.0.1:9200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
