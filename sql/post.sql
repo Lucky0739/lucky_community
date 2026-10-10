@@ -7,8 +7,6 @@
 --   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/bar.sql
 --   psql -h127.0.0.1 -p5432 -Upostgres -d community -f sql/post.sql
 --
--- 重复执行会因表已存在而报错。
-
 CREATE SCHEMA IF NOT EXISTS community;
 
 CREATE OR REPLACE FUNCTION community.touch_update_time()
@@ -22,13 +20,15 @@ END;
 $$;
 
 -- 封面与张数冗余在主表：列表分页只扫 tb_post。
+-- 完整正文在 Cassandra（keyspace community，按 post_id 读写）；本表只存摘要供列表展示。
 -- 第一张图即封面，无图时 cover_image 为 NULL、image_count 为 0。
 CREATE TABLE community.tb_post (
     id                   bigint        NOT NULL,                           -- 主键，雪花ID
     bar_id               bigint        NOT NULL,                           -- 所属贴吧ID
     user_id              bigint        NOT NULL,                           -- 作者用户ID
     title                varchar(64)   NOT NULL,                           -- 标题
-    content              text          NOT NULL,                           -- 正文
+    content_preview      varchar(256)  NOT NULL DEFAULT '',                -- 正文摘要，列表用；详情正文读 Cassandra
+    visibility_scope     integer       NOT NULL DEFAULT 0,                 -- 可见范围：0公开，1仅自己，2仅粉丝
     cover_image          varchar(512),                                     -- 封面图URL，取第一张配图；无图为NULL
     image_count          integer       NOT NULL DEFAULT 0,                 -- 配图张数，与未删除的图片行数同步；无图为0
     deleted              integer       NOT NULL DEFAULT 0,                 -- 逻辑删除：0未删除，1已删除
@@ -46,7 +46,8 @@ COMMENT ON COLUMN community.tb_post.id IS '主键，雪花ID';
 COMMENT ON COLUMN community.tb_post.bar_id IS '所属贴吧ID';
 COMMENT ON COLUMN community.tb_post.user_id IS '作者用户ID';
 COMMENT ON COLUMN community.tb_post.title IS '标题';
-COMMENT ON COLUMN community.tb_post.content IS '正文';
+COMMENT ON COLUMN community.tb_post.content_preview IS '正文摘要（列表展示）；完整正文在 Cassandra，主键与帖子 id 一致';
+COMMENT ON COLUMN community.tb_post.visibility_scope IS '可见范围：0公开，1仅自己，2仅粉丝（关注作者的人）';
 COMMENT ON COLUMN community.tb_post.cover_image IS '封面图URL，取第一张配图；无图为NULL';
 COMMENT ON COLUMN community.tb_post.image_count IS '配图张数，与未删除的 tb_post_image 行数同步；无图为0';
 COMMENT ON COLUMN community.tb_post.deleted IS '逻辑删除：0未删除，1已删除';
