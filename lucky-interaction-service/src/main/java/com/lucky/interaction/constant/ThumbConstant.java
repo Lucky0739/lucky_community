@@ -34,4 +34,16 @@ public final class ThumbConstant {
     public static final String MQ_UNLIKE_DESTINATION = MQ_TOPIC + ":" + MQ_UNLIKE_TAG;
 
     public static final String MQ_CONSUMER_GROUP = "thumb-persist-consumer";
+
+    /** 消费端一批最多处理多少条，批内按 userId+postId 抵消后再落库 */
+    public static final int CONSUME_BATCH_MAX = 30;
+
+    /** 消费端攒批落库：攒够这么多条点赞记录就落库 */
+    public static final int PERSIST_BATCH_SIZE = 500;
+
+    /** 消费端攒批落库：最多等这么多秒，避免冷帖的点赞迟迟不落库 */
+    public static final int PERSIST_LINGER_SECONDS = 5;
+
+    /** 攒批队列上限，满了阻塞（背压），防止内存被撑爆 */
+    public static final int PERSIST_BUFFER_SIZE = 10_000;
 }
