@@ -1,4 +1,4 @@
-package com.lucky.interaction.mq;
+package com.lucky.interaction.mq.consumer;
 
 import com.lucky.interaction.constant.FollowConstant;
 import com.lucky.interaction.entity.Follow;
@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 
 /**
  * 关注关系落库：同一消费组按用户有序处理关注/取消，避免后发的删除被先到的插入覆盖。
- * 关注数 followee 由 10 秒 / 500 次窗口另刷。被关注人的粉丝数在这里随关系落库加减。
+ * 关注数和粉丝数都在关系真正插入或删除时加减。重复消息不再加减。
  */
 @Slf4j
 @Service
@@ -45,6 +45,7 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
                 log.info("关注关系已不存在，userId={}, followUserId={}",
                         message.getUserId(), message.getFollowUserId());
             } else {
+                userInfoStatMapper.decreaseFollowee(message.getUserId());
                 userInfoStatMapper.decreaseFans(message.getFollowUserId());
             }
             return;
@@ -59,6 +60,7 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
             log.info("关注关系已存在，userId={}, followUserId={}",
                     message.getUserId(), message.getFollowUserId());
         } else {
+            userInfoStatMapper.increaseFollowee(message.getUserId());
             userInfoStatMapper.increaseFans(message.getFollowUserId());
         }
     }
