@@ -1,4 +1,4 @@
-package com.lucky.community.comment.vo;
+package com.lucky.community.ai.vo;
 
 import lombok.Data;
 
