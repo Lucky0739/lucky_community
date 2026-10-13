@@ -1,4 +1,4 @@
-package com.lucky.community.common;
+package com.lucky.common.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,4 +21,9 @@ public class PageResult<T> {
     private int pageNum;
 
     private int pageSize;
+
+    public PageResult(List<T> records, long total) {
+        this.records = records;
+        this.total = total;
+    }
 }
