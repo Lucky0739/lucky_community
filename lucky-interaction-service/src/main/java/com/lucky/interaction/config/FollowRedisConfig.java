@@ -5,8 +5,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
-import java.util.List;
-
 @Configuration
 public class FollowRedisConfig {
 
@@ -28,20 +26,6 @@ public class FollowRedisConfig {
     @Bean("unfollowRollbackScript")
     public DefaultRedisScript<Long> unfollowRollbackScript() {
         return longScript("lua/unfollow_rollback.lua");
-    }
-
-    @Bean("followStatScript")
-    public DefaultRedisScript<Long> followStatScript() {
-        return longScript("lua/follow_stat.lua");
-    }
-
-    @Bean("followStatDrainScript")
-    @SuppressWarnings("rawtypes")
-    public DefaultRedisScript<List> followStatDrainScript() {
-        DefaultRedisScript<List> script = new DefaultRedisScript<>();
-        script.setLocation(new ClassPathResource("lua/follow_stat_drain.lua"));
-        script.setResultType(List.class);
-        return script;
     }
 
     private DefaultRedisScript<Long> longScript(String path) {

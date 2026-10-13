@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
+import java.util.List;
+
 @Configuration
 public class ThumbRedisConfig {
 
