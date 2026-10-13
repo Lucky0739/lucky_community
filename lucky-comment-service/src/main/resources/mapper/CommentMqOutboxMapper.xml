@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.comment.mapper.CommentMqOutboxMapper">
+
+    <insert id="insert">
+        INSERT INTO tb_comment_mq_outbox (id, topic, payload)
+        VALUES (#{id}, #{topic}, #{payload})
+    </insert>
+
+    <select id="selectOldest" resultType="com.lucky.comment.entity.CommentMqOutbox">
+        SELECT id, topic, payload
+        FROM tb_comment_mq_outbox
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM tb_comment_mq_outbox WHERE id = #{id}
+    </delete>
+</mapper>

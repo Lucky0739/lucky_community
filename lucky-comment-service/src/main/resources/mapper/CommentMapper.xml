@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.comment.mapper.CommentMapper">
+
+    <select id="selectById" resultType="com.lucky.comment.entity.Comment">
+        SELECT id, post_id, user_id, content_uuid, is_content_empty, image_url,
+               level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+               is_top, deleted, create_time, update_time
+        FROM tb_comment
+        WHERE id = #{id}
+    </select>
+
+    <insert id="batchInsert">
+        INSERT INTO tb_comment (
+            id, post_id, user_id,
+            content_uuid, is_content_empty, image_url,
+            level, reply_total, like_total,
+            parent_id, reply_comment_id, reply_user_id,
+            is_top, deleted, create_time, update_time
+        )
+        VALUES
+        <foreach collection="comments" item="comment" separator=",">
+            (#{comment.id}, #{comment.postId}, #{comment.userId},
+             #{comment.contentUuid}, #{comment.isContentEmpty}, #{comment.imageUrl},
+             #{comment.level}, #{comment.replyTotal}, #{comment.likeTotal},
+             #{comment.parentId}, #{comment.replyCommentId}, #{comment.replyUserId},
+             #{comment.isTop}, #{comment.deleted}, #{comment.createTime}, #{comment.updateTime})
+        </foreach>
+        ON CONFLICT (id) DO NOTHING
+    </insert>
+
+    <select id="insertIgnoreReturningIds" resultType="long">
+        INSERT INTO tb_comment (
+            id, post_id, user_id, content_uuid, is_content_empty, image_url,
+            level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+            is_top, deleted, create_time
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.postId}, #{item.userId}, #{item.contentUuid}, #{item.contentEmpty},
+             #{item.imageUrl}, #{item.level}, 0, 0, #{item.parentId}, #{item.replyCommentId},
+             #{item.replyUserId}, 0, 0, to_timestamp(#{item.createTime} / 1000.0))
+        </foreach>
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+    </select>
+
+    <update id="increaseReplyTotal">
+        UPDATE tb_comment
+        SET reply_total = reply_total + #{delta}
+        WHERE id = #{id} AND level = 1 AND deleted = 0
+    </update>
+</mapper>

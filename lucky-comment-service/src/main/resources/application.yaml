@@ -1,5 +1,5 @@
 server:
-  port: ${COMMENT_SERVICE_PORT:8130}
+  port: ${COMMENT_SERVICE_PORT:8005}
 
 spring:
   application:
@@ -12,10 +12,43 @@ spring:
     nacos:
       server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
       discovery:
+        ip: ${NACOS_DISCOVERY_IP:127.0.0.1}
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
       config:
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/community?currentSchema=community,public}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6380}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+  producer:
+    group: ${ROCKETMQ_PRODUCER_GROUP:lucky-comment-producer}
+    send-message-timeout: 3000
+    send-message-with-vip-channel: false
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://127.0.0.1:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:community}
+
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: ${JWT_SECRET:lucky-community-local-dev-only-jwt-secret-key-32chars+}
+  access-expire: ${JWT_ACCESS_EXPIRE:1800}
+  refresh-expire: ${JWT_REFRESH_EXPIRE:604800}
 
 management:
   endpoints:
