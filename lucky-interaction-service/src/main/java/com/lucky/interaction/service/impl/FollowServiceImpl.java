@@ -13,7 +13,6 @@ import com.lucky.interaction.enums.UnfollowLuaResult;
 import com.lucky.interaction.mapper.FollowMapper;
 import com.lucky.interaction.mapper.UserReadMapper;
 import com.lucky.interaction.mq.message.FollowMessage;
-import com.lucky.interaction.service.FollowCountFlushService;
 import com.lucky.interaction.service.FollowService;
 import com.lucky.interaction.support.entity.UserBrief;
 import com.lucky.interaction.vo.FollowUserVO;
@@ -43,15 +42,16 @@ public class FollowServiceImpl implements FollowService {
     private final UserReadMapper userReadMapper;
     private final FollowMapper followMapper;
     private final FollowCache followCache;
-    private final FollowCountFlushService followCountFlushService;
     private final RocketMQTemplate rocketMQTemplate;
     private final Clock clock;
 
     @Override
     public void follow(Long userId, Long followUserId) {
+        // 检验用户是否存在
         if (followUserId == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException("传入的用户id为空");
         }
+
         if (!userReadMapper.existsById(followUserId)) {
             throw new BusinessException("用户不存在");
         }
@@ -87,12 +87,6 @@ public class FollowServiceImpl implements FollowService {
             followCache.rollback(userId, followUserId);
             log.error("关注消息发送失败，已回滚 Redis，userId={}, followUserId={}", userId, followUserId, e);
             throw new BusinessException("关注失败，请稍后重试");
-        }
-
-        try {
-            followCountFlushService.onFollowEvent(userId, followUserId);
-        } catch (RuntimeException e) {
-            log.error("关注数刷库窗口更新失败，将等待下次关注或延迟消息，userId={}", userId, e);
         }
     }
 
@@ -150,12 +144,6 @@ public class FollowServiceImpl implements FollowService {
             followCache.restoreAfterUnfollow(userId, followUserId, clock.millis());
             log.error("取消关注消息发送失败，已回滚 Redis，userId={}, followUserId={}", userId, followUserId, e);
             throw new BusinessException("取消关注失败，请稍后重试");
-        }
-
-        try {
-            followCountFlushService.onFollowEvent(userId, followUserId);
-        } catch (RuntimeException e) {
-            log.error("关注数刷库窗口更新失败，将等待下次关注或延迟消息，userId={}", userId, e);
         }
     }
 

@@ -39,6 +39,7 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void onMessage(FollowMessage message) {
+        // 取消关注
         if (FollowConstant.MQ_UNFOLLOW_TAG.equals(message.getAction())) {
             int deleted = followMapper.deleteByUserAndFollowee(message.getUserId(), message.getFollowUserId());
             if (deleted == 0) {
@@ -55,6 +56,7 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
         follow.setUserId(message.getUserId());
         follow.setFollowUserId(message.getFollowUserId());
         follow.setCreateTime(toCreateTime(message.getFollowTime()));
+        // 关注功能
         int inserted = followMapper.insertIgnore(follow);
         if (inserted == 0) {
             log.info("关注关系已存在，userId={}, followUserId={}",

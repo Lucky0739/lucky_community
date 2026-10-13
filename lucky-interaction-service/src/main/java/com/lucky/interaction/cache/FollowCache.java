@@ -2,15 +2,17 @@ package com.lucky.interaction.cache;
 
 import com.lucky.interaction.constant.FollowConstant;
 import com.lucky.interaction.enums.FollowLuaResult;
+import com.lucky.interaction.enums.UnfollowLuaResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 关注热路径：ZSet + 关注数都由 Lua 一次写完
@@ -27,12 +29,11 @@ public class FollowCache {
     @Qualifier("followRollbackScript")
     private final DefaultRedisScript<Long> followRollbackScript;
 
-    @Qualifier("followStatScript")
-    private final DefaultRedisScript<Long> followStatScript;
+    @Qualifier("unfollowScript")
+    private final DefaultRedisScript<Long> unfollowScript;
 
-    @Qualifier("followStatDrainScript")
-    @SuppressWarnings("rawtypes")
-    private final DefaultRedisScript<List> followStatDrainScript;
+    @Qualifier("unfollowRollbackScript")
+    private final DefaultRedisScript<Long> unfollowRollbackScript;
 
     /**
      * 执行关注Lua脚本
@@ -53,6 +54,41 @@ public class FollowCache {
     }
 
     /**
+     * 是否已关注：ZSet 里有该 member 即为已关注
+     */
+    public boolean isFollowed(Long userId, Long followUserId) {
+        Double score = stringRedisTemplate.opsForZSet()
+                .score(FollowConstant.followUserKey(userId), String.valueOf(followUserId));
+        return score != null;
+    }
+
+    /**
+     * 该用户的关注 ZSet 是否已在 Redis。没有 key 时只能回源 tb_follow。
+     */
+    public boolean hasFollowZSet(Long userId) {
+        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(FollowConstant.followUserKey(userId)));
+    }
+
+    public UnfollowLuaResult unfollow(Long userId, Long followUserId) {
+        Long code = stringRedisTemplate.execute(
+                unfollowScript,
+                List.of(FollowConstant.followUserKey(userId), FollowConstant.followCountKey(userId)),
+                String.valueOf(followUserId));
+        return UnfollowLuaResult.fromCode(code);
+    }
+
+    /**
+     * 取消关注的 MQ 发送失败时，把 ZSet 关系和关注数加回去
+     */
+    public void restoreAfterUnfollow(Long userId, Long followUserId, long score) {
+        stringRedisTemplate.execute(
+                unfollowRollbackScript,
+                List.of(FollowConstant.followUserKey(userId), FollowConstant.followCountKey(userId)),
+                String.valueOf(followUserId),
+                String.valueOf(score));
+    }
+
+    /**
      * MQ 发送失败时回滚 ZSet 和关注数，避免 Redis 有关系、库没有
      */
     public void rollback(Long userId, Long followUserId) {
@@ -60,52 +96,6 @@ public class FollowCache {
                 followRollbackScript,
                 List.of(FollowConstant.followUserKey(userId), FollowConstant.followCountKey(userId)),
                 String.valueOf(followUserId));
-    }
-
-    /**
-     * 记下待刷库用户，并判断本窗口是继续等、投递 10 秒延迟消息，还是立即刷库
-     */
-    public long markFolloweeDirty(Long userId) {
-        Long code = stringRedisTemplate.execute(
-                followStatScript,
-                List.of(
-                        FollowConstant.FOLLOWEE_DIRTY_KEY,
-                        FollowConstant.FOLLOWEE_EVENT_KEY,
-                        FollowConstant.FOLLOWEE_SCHEDULED_KEY),
-                String.valueOf(userId),
-                String.valueOf(FollowConstant.FLUSH_EVENT_THRESHOLD));
-        return code == null ? FollowConstant.STAT_NONE : code;
-    }
-
-    /**
-     * 取出本窗口脏用户并清空计数。SQL 失败时用 {@link #restoreDirty} 填回去。
-     */
-    @SuppressWarnings("unchecked")
-    public List<String> takeDirtyUserIds() {
-        List<Object> users = stringRedisTemplate.execute(
-                followStatDrainScript,
-                List.of(
-                        FollowConstant.FOLLOWEE_DIRTY_KEY,
-                        FollowConstant.FOLLOWEE_EVENT_KEY,
-                        FollowConstant.FOLLOWEE_SCHEDULED_KEY));
-        if (users.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String> ids = new ArrayList<>(users.size());
-        for (Object user : users) {
-            if (user != null) {
-                ids.add(String.valueOf(user));
-            }
-        }
-        return ids;
-    }
-
-    public void restoreDirty(List<String> userIds) {
-        if (userIds == null || userIds.isEmpty()) {
-            return;
-        }
-        stringRedisTemplate.opsForSet()
-                .add(FollowConstant.FOLLOWEE_DIRTY_KEY, userIds.toArray(String[]::new));
     }
 
     public int readFollowCount(Long userId) {
@@ -117,8 +107,33 @@ public class FollowCache {
         return Integer.parseInt(value);
     }
 
-    public boolean hasDirtyUsers() {
-        Long size = stringRedisTemplate.opsForSet().size(FollowConstant.FOLLOWEE_DIRTY_KEY);
-        return size != null && size > 0;
+    /**
+     * 关注列表：按关注时间倒序取一页。ZSet 不存在时返回 null，由调用方回源数据库。
+     */
+    public List<FolloweeEntry> pageFollowees(Long userId, long offset, int count) {
+        if (!hasFollowZSet(userId)) {
+            return null;
+        }
+        if (offset < 0 || count <= 0) {
+            return List.of();
+        }
+        Set<ZSetOperations.TypedTuple<String>> tuples = stringRedisTemplate.opsForZSet()
+                .reverseRangeWithScores(FollowConstant.followUserKey(userId), offset, offset + count - 1);
+        if (tuples == null || tuples.isEmpty()) {
+            return List.of();
+        }
+        List<FolloweeEntry> entries = new ArrayList<>(tuples.size());
+        for (ZSetOperations.TypedTuple<String> tuple : tuples) {
+            if (tuple.getValue() == null) {
+                continue;
+            }
+            try {
+                long score = tuple.getScore() == null ? 0L : tuple.getScore().longValue();
+                entries.add(new FolloweeEntry(Long.valueOf(tuple.getValue()), score));
+            } catch (NumberFormatException e) {
+                // 脏 member 跳过，不让整页失败
+            }
+        }
+        return entries;
     }
 }
