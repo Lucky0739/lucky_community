@@ -23,34 +23,6 @@ import java.util.function.Function;
 
 /**
  * 帖子详情的多级缓存：Caffeine(L1，本机内存) + Redis(L2，实例间共享)
- *
- * <h3>读路径</h3>
- * <pre>
- * L1 命中且未逻辑过期 → 返回
- * L1 命中但逻辑过期   → 返回旧值 + 异步重建（不阻塞）
- * L1 未命中          → 读 L2，命中则回填 L1
- * L2 也未命中        → 冷路径 → DCL → 查库 → 回填 L2 + L1
- * </pre>
- *
- * <h3>两种击穿，两种手段</h3>
- * <table>
- *   <tr><td>冷 key（没有旧值可用）</td><td>DCL 互斥，读最多等 200ms</td></tr>
- *   <tr><td>热 key 逻辑过期（有旧值）</td><td>返回旧值 + 异步重建，读不阻塞</td></tr>
- * </table>
- * <b>有旧值就异步重建，没旧值才加锁等</b>——两者不冲突，各管一段。
- * <h3>为什么要保留 Caffeine 的 {@code get(key, loader)}</h3>
- * 它在 L1 命中时<b>不调用</b> loader、未命中才调用，所以一个调用同时覆盖了
- * 「冷路径要走 loader」和「逻辑过期直接返回缓存」两种语义。
- * 更关键的是它提供了<b>本机单飞</b>：同一个 JVM 内只有一个线程会走到 DCL，
- * 把分布式锁的并发压力从「每线程一次」压到「每实例一次」。
- *
- * <h3>已接受的代价</h3>
- * <ul>
- *   <li>多实例下 L1 最长会陈旧一个 {@code logical-ttl-seconds}（这是逻辑过期换「读不阻塞」的代价）</li>
- *   <li>被软删的帖子 ID 仍在布隆过滤器里，每次读要打一条 selectById 才发现是空的</li>
- *   <li>缓存条目反序列化失败（格式变更、VO 加字段）会退化为一次回源，<b>刻意不宽容处理</b>：
- *       宁可回源也不要因为字段缺失而返回错误数据</li>
- * </ul>
  */
 @Slf4j
 @Service
@@ -138,7 +110,6 @@ public class PostDetailCache {
     }
     /**
      * 失效 L1 + L2。请求路径用这个：L2 失败只打日志，不把已经提交的事务带挂。
-     * WAL CDC 用 {@link #evictStrict}，删除失败必须抛出，位点才不会偷偷前进。
      */
     public void evict(Long postId) {
         try {
@@ -174,15 +145,15 @@ public class PostDetailCache {
 
     /**
      * 跨实例双重检测锁：同一个帖子同一时刻只有一个加载者写 L2。
-     * <pre>
      * 第一次检测（锁外）→ 抢锁 → 第二次检测（锁内）→ 查库写 L2
-     * </pre>
      * 等锁超时或锁服务异常时，再看一次 L2：持锁者可能已经写好了，不要再打一次库。
      */
     private PostDetailCacheEntry loadWithLock(Long postId, Function<Long, PostDetailVO> loader) {
+        // redisson检测是否存在锁
         RLock lock = redissonClient.getLock(RedisKeyManage.POST_LOAD_LOCK.key(postId));
         boolean locked = false;
         try {
+            // 加锁
             locked = lock.tryLock(loadLockWaitMillis, loadLockLeaseMillis, TimeUnit.MILLISECONDS);
             if (locked) {
                 PostDetailCacheEntry again = getFromL2(postId);
@@ -267,13 +238,13 @@ public class PostDetailCache {
 
     // ==================== 存储层读写 ====================
     private PostDetailCacheEntry loadAndStore(Long postId, Function<Long, PostDetailVO> loader) {
-        PostDetailVO vo = loader.apply(postId);
-        if (vo == null) {
+        PostDetailVO postDetailVO = loader.apply(postId);
+        if (postDetailVO == null) {
             return null;
         }
-        PostDetailCacheEntry entry = newEntry(vo);
-        putToL2(entry);
-        return entry;
+        PostDetailCacheEntry postDetailCacheEntry = newEntry(postDetailVO);
+        putToL2(postDetailCacheEntry);
+        return postDetailCacheEntry;
     }
 
     private PostDetailCacheEntry newEntry(PostDetailVO vo) {
@@ -285,7 +256,6 @@ public class PostDetailCache {
 
     /**
      * 抖动只加不减：同一批写入的 key 若逻辑过期时间完全相同，会在同一秒集体触发重建。
-     * 只加不减是为了不缩短预期的数据新鲜度。
      */
     private long jitterSeconds() {
         if (jitterPercent <= 0) {
