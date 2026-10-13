@@ -22,9 +22,10 @@ import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.time.Clock;
+
 /**
  * 公共自动配置。按职责拆成内部类，是为了让条件注解各自生效：
- * JWT 不依赖 Redis，认证依赖 Redis，拦截器注册依赖认证 Bean，MinIO 依赖端点配置。
  */
 public final class LuckyAutoConfiguration {
 
@@ -56,7 +57,6 @@ public final class LuckyAutoConfiguration {
 
     /**
      * 密码编码器由 Hutool BCrypt 实现。spring-security-crypto 在本模块是 optional 依赖，
-     * 所以用 @ConditionalOnClass 守卫：没引这个依赖的服务不会因为缺类而启动失败。
      */
     @AutoConfiguration
     @ConditionalOnClass(PasswordEncoder.class)
@@ -66,6 +66,21 @@ public final class LuckyAutoConfiguration {
         @ConditionalOnMissingBean
         public PasswordEncoder passwordEncoder() {
             return new HutoolPasswordEncoder();
+        }
+    }
+
+    /**
+     * 时间源。需要「当前时刻」的地方注入 {@link Clock}，不要在业务代码里直接调
+     * {@code LocalDateTime.now()}：后者用 JVM 默认时区且不可替换，单测里没法把时间钉死
+     * （注入后可以用 {@code Clock.fixed(...)} 断言写进去的时间）。将来统一换时区也只改这一处。
+     */
+    @AutoConfiguration
+    public static class Time {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public Clock clock() {
+            return Clock.systemDefaultZone();
         }
     }
 
