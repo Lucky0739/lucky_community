@@ -10,11 +10,6 @@ import lombok.Data;
 @Data
 public class PageQueryDTO {
 
-    /**
-     * 单页最大条数
-     */
-    public static final int MAX_SIZE = 50;
-
     /** 每页条数的默认值 */
     public static final int DEFAULT_SIZE = 20;
 
@@ -23,8 +18,7 @@ public class PageQueryDTO {
      */
     private Long lastId;
 
-    /** 每页条数，上限见 {@link #MAX_SIZE} */
+    /** 每页条数，上限见 */
     @Min(value = 1, message = "每页条数不能小于1")
-    @Max(value = MAX_SIZE, message = "每页条数不能超过" + MAX_SIZE)
-    private Integer size = DEFAULT_SIZE;
+    private Integer pageSize = DEFAULT_SIZE;
 }
