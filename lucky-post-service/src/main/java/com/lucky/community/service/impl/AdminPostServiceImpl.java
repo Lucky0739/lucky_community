@@ -1,7 +1,6 @@
 package com.lucky.community.service.impl;
 
 import cn.hutool.core.util.IdUtil;
-import com.lucky.common.constant.PostConstant;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.vo.PageResult;
 import com.lucky.community.ai.AiModerationService;
@@ -48,6 +47,12 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final AiModerationService aiModerationService;
     private final PermissionSupport permissionSupport;
 
+    /**
+     * 分页查询帖子
+     * @param operatorId
+     * @param query
+     * @return
+     */
     @Override
     public PageResult<AdminPostVO> pagePosts(Long operatorId, AdminPostQueryDTO query) {
         requirePlatformAdmin(operatorId);
@@ -68,6 +73,11 @@ public class AdminPostServiceImpl implements AdminPostService {
         return result;
     }
 
+    /**
+     * 人工审核帖子
+     * @param operatorId
+     * @param adminReviewPostDTO
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void reviewPost(Long operatorId, AdminReviewPostDTO adminReviewPostDTO) {
@@ -90,6 +100,11 @@ public class AdminPostServiceImpl implements AdminPostService {
         runAfterCommit(() -> postDetailCache.evict(post.getId()));
     }
 
+    /**
+     * 删除帖子
+     * @param operatorId
+     * @param postId
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deletePost(Long operatorId, Long postId) {
@@ -129,7 +144,7 @@ public class AdminPostServiceImpl implements AdminPostService {
             UserBrief author = userById.get(post.getUserId());
             row.setNickName(author == null ? null : author.getNickName());
             row.setTitle(post.getTitle());
-            row.setContentPreview(preview(post.getContent()));
+            row.setContentPreview(post.getContentPreview());
             PostAnalysis analysis = analysisByPostId.get(post.getId());
             if (analysis != null) {
                 row.setRiskLevel(analysis.getRiskLevel());
@@ -158,20 +173,5 @@ public class AdminPostServiceImpl implements AdminPostService {
                 action.run();
             }
         });
-    }
-
-    private String preview(String content) {
-        if (content == null) {
-            return null;
-        }
-        int[] codePoints = content.codePoints().toArray();
-        if (codePoints.length <= PostConstant.PREVIEW_CODE_POINTS) {
-            return content;
-        }
-        StringBuilder text = new StringBuilder();
-        for (int i = 0; i < PostConstant.PREVIEW_CODE_POINTS; i++) {
-            text.appendCodePoint(codePoints[i]);
-        }
-        return text.append("...").toString();
     }
 }
