@@ -1,6 +1,6 @@
 package com.lucky.community.vo;
 
-import com.lucky.community.comment.vo.CommentVO;
+import com.lucky.community.ai.vo.CommentVO;
 import lombok.Data;
 
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.List;
 @Data
 public class PostViewVO {
 
-    private PostDetailVO post;
+    private PostDetailVO postDetailVO;
 
     /** 一级评论首页，不含回复正文；楼下条数看 {@link CommentVO#getReplyCount()} */
     private List<CommentVO> comments;
