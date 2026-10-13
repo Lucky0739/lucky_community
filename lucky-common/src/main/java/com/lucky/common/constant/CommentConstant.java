@@ -8,12 +8,6 @@ public class CommentConstant {
     /** 评论正文最大字符数 */
     public static final int MAX_CONTENT_LENGTH = 500;
 
-    /** 一级评论 */
-    public static final int LEVEL_ROOT = 1;
-
-    /** 二级评论（回复） */
-    public static final int LEVEL_REPLY = 2;
-
     /** 无父评论 / 无被回复用户 等占位值 */
     public static final long NONE = 0L;
 
