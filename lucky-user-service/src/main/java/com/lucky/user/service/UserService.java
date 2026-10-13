@@ -4,6 +4,7 @@ package com.lucky.user.service;
 import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
+import com.lucky.user.api.vo.UserBriefVO;
 import com.lucky.user.vo.LoginVO;
 
 public interface UserService {
@@ -31,4 +32,7 @@ public interface UserService {
      * @param userId 目标用户，不是操作人
      */
     void updateProfileForUser(Long userId, UpdateProfileDTO dto);
+
+    /** 帖子详情展示作者。用户不存在时返回 null。 */
+    UserBriefVO getBrief(Long userId);
 }

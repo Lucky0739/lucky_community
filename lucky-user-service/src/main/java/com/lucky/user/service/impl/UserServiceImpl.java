@@ -25,6 +25,7 @@ import com.lucky.user.service.PermissionService;
 import com.lucky.user.service.UserService;
 import com.lucky.user.vo.LoginVO;
 import com.lucky.user.vo.RoleVO;
+import com.lucky.user.api.vo.UserBriefVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -156,6 +157,22 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public void updateProfileForUser(Long userId, UpdateProfileDTO updateProfileDTO) {
         doUpdateProfile(userId, updateProfileDTO);
+    }
+
+    @Override
+    public UserBriefVO getBrief(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return null;
+        }
+        UserBriefVO brief = new UserBriefVO();
+        brief.setUserId(user.getId());
+        brief.setNickName(user.getNickName());
+        brief.setIcon(user.getIcon());
+        return brief;
     }
 
     /**

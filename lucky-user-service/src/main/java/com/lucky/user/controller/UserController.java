@@ -11,6 +11,7 @@ import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
 import com.lucky.user.service.UserService;
+import com.lucky.user.api.vo.UserBriefVO;
 import com.lucky.user.vo.LoginVO;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +81,14 @@ public class UserController {
         authService.logout(accessToken, refreshToken);
         RefreshCookieUtil.clear(response, cookieSecure);
         return Result.success();
+    }
+
+    /**
+     * 作者昵称和头像。帖子详情调用，不要求登录。
+     */
+    @GetMapping("/brief/{userId}")
+    public Result<UserBriefVO> brief(@PathVariable("userId") Long userId) {
+        return Result.success(userService.getBrief(userId));
     }
 
     /**
