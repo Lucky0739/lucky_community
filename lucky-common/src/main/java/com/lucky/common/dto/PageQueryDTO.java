@@ -13,6 +13,9 @@ public class PageQueryDTO {
     /** 每页条数的默认值 */
     public static final int DEFAULT_SIZE = 20;
 
+    /** 每页条数上限 */
+    public static final int MAX_SIZE = 50;
+
     /**
      * 游标：上一页最后一条的 id；首页传 null
      */
