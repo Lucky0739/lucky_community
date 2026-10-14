@@ -26,6 +26,11 @@ public class AuthServiceImpl implements AuthService {
     private final TokenIssuer tokenIssuer;
     private final TokenRedisService tokenRedisService;
 
+    /**
+     * 刷新短令牌
+     * @param refreshToken
+     * @return
+     */
     @Override
     public RefreshResult refreshAccessToken(String refreshToken) {
         JwtUtil.Payload payload = jwtUtil.parse(refreshToken, JwtUtil.TYPE_REFRESH);
@@ -58,6 +63,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    /**
+     * 退出登录
+     * @param accessToken
+     * @param refreshToken
+     */
     @Override
     public void logout(String accessToken, String refreshToken) {
         JwtUtil.Payload access = jwtUtil.parse(accessToken, JwtUtil.TYPE_ACCESS);
