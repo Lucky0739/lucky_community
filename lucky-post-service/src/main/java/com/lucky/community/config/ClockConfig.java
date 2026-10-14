@@ -7,7 +7,6 @@ import java.time.Clock;
 
 /**
  * 时间源
- * 需要手动取「当前时刻」的地方注入 {@link Clock}，不要在业务代码里直接调
  */
 @Configuration
 public class ClockConfig {
