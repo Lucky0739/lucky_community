@@ -108,10 +108,31 @@ class Settings:
     embedding_api_key: str
     embedding_model: str
     retrieval_k: int
+    composer_model: str
+    composer_timeout: int
+    langsmith_enabled: bool
+    langsmith_project: str
 
     @staticmethod
     def load() -> "Settings":
         file_cfg = _load_ai_toml()
+        # LangSmith：显式开关优先（支持 on/off）；没写就看有没有填密钥 ——
+        # 填了密钥默认开启，与模块说明「填了密钥且没有显式关闭时打开追踪」一致。
+        langsmith_override = _pick_optional_bool(
+            os.getenv("LANGSMITH_ENABLED"),
+            file_cfg.get("langsmith_enabled"),
+        )
+        langsmith_enabled = (
+            langsmith_override
+            if langsmith_override is not None
+            else bool(
+                _pick_str(
+                    os.getenv("LANGSMITH_API_KEY"),
+                    file_cfg.get("langsmith_api_key"),
+                    default="",
+                )
+            )
+        )
         return Settings(
             # 精判默认 Opus。漏判代价高于每次调用省下的几分钱。
             model=_pick_str(
@@ -242,6 +263,26 @@ class Settings:
                 os.getenv("AI_RETRIEVAL_K"),
                 file_cfg.get("retrieval_k"),
                 default=10,
+            ),
+            # 发帖起草用的模型。留空 = 复用上面的 model。
+            # 注意：ai.toml 现在指向 DeepSeek 的 Anthropic 兼容端点，那个模型
+            # 多半不接受 image block，不在这里单独填一个能看图的模型，
+            # /compose 每次都会降级。看图和生成比单次审核慢，超时也另给。
+            composer_model=_pick_optional_str(
+                os.getenv("MODERATION_COMPOSER_MODEL"),
+                file_cfg.get("composer_model"),
+                default="",
+            ),
+            composer_timeout=_pick_int(
+                os.getenv("MODERATION_COMPOSER_TIMEOUT"),
+                file_cfg.get("composer_timeout"),
+                default=20,
+            ),
+            langsmith_enabled=langsmith_enabled,
+            langsmith_project=_pick_str(
+                os.getenv("LANGSMITH_PROJECT"),
+                file_cfg.get("langsmith_project"),
+                default="lucky-community-governance",
             ),
         )
 
