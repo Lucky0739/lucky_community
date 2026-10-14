@@ -13,6 +13,11 @@
     <description>Lucky 社区统一网关</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.luckyCommunity</groupId>
+            <artifactId>lucky-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <!-- 网关依赖-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

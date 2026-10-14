@@ -38,23 +38,23 @@ spring:
           predicates:
             - Path=/comment/**, /admin/comment/**
 
-        # 互动服务 (点赞、收藏)
+        # 互动服务 (点赞、收藏、关注)
         - id: interaction-service
           uri: lb://lucky-interaction-service
           predicates:
-            - Path=/thumb/**, /favorite/**
+            - Path=/thumb/**, /favorite/**, /follow/**
 
-        # 消息服务
-        - id: message-service
-          uri: lb://lucky-message-service
+        # 搜索服务
+        - id: search-service
+          uri: lb://lucky-search-service
           predicates:
-            - Path=/message/**
+            - Path=/search/**
 
-        # 帖子服务 (贴吧、帖子)
+        # 帖子服务 (贴吧、帖子、管理端)
         - id: post-service
           uri: lb://lucky-post-service
           predicates:
-            - Path=/bar/**, /post/**
+            - Path=/bar/**, /post/**, /admin/bar/**, /admin/post/**
 
 management:
   endpoints:

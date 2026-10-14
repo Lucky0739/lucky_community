@@ -1,5 +1,6 @@
 package com.lucky.gateway;
 
+import com.lucky.common.net.LoopbackProxyBypass;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class GatewayApplication {
     public static void main(String[] args) {
+        LoopbackProxyBypass.enable();
         SpringApplication.run(GatewayApplication.class, args);
     }
 }
