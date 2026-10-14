@@ -35,4 +35,13 @@ public class RedisKeyConstants {
     public static String buildThumbCancelKey(Long userId) {
         return THUMB_CANCEL_KEY + userId;
     }
+
+    /** 待刷入 tb_post_count 的 postId 集合 */
+    public static final String THUMB_LIKE_COUNT_DIRTY_SET = "thumb:like:count:dirty";
+
+    /** 点赞计数变更事件累计，达到阈值触发刷库 */
+    public static final String THUMB_LIKE_COUNT_EVENT_COUNTER = "thumb:like:count:events";
+
+    /** 10 秒延迟刷库定时器占位，避免重复发延迟消息 */
+    public static final String THUMB_LIKE_COUNT_FLUSH_SCHEDULED = "thumb:like:count:flush:scheduled";
 }

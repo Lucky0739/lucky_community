@@ -41,4 +41,21 @@ public class ThumbRedisConfig {
         script.setResultType(Long.class);
         return script;
     }
+
+    @Bean("thumbCountStatScript")
+    public DefaultRedisScript<Long> thumbCountStatScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setLocation(new ClassPathResource("lua/thumb_count_stat.lua"));
+        script.setResultType(Long.class);
+        return script;
+    }
+
+    @Bean("thumbCountDrainScript")
+    @SuppressWarnings("unchecked")
+    public DefaultRedisScript<List<String>> thumbCountDrainScript() {
+        DefaultRedisScript<List<String>> script = new DefaultRedisScript<>();
+        script.setLocation(new ClassPathResource("lua/thumb_count_drain.lua"));
+        script.setResultType((Class<List<String>>) (Class<?>) List.class);
+        return script;
+    }
 }

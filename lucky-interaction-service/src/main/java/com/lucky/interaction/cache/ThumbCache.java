@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 点赞热路径：RedisBloom 判重，Hash 存点赞数据，计数单独一个 key。都由 Lua 一次写完。
@@ -27,17 +29,23 @@ public class ThumbCache {
     private final DefaultRedisScript<Long> thumbBloomInitScript;
     private final DefaultRedisScript<Long> thumbUnlikeScript;
     private final DefaultRedisScript<Long> thumbUnlikeRollbackScript;
+    private final DefaultRedisScript<Long> thumbCountStatScript;
+    private final DefaultRedisScript<List<String>> thumbCountDrainScript;
 
     public ThumbCache(StringRedisTemplate stringRedisTemplate,
                       @Qualifier("thumbLikeScript") DefaultRedisScript<Long> thumbLikeScript,
                       @Qualifier("thumbBloomInitScript") DefaultRedisScript<Long> thumbBloomInitScript,
                       @Qualifier("thumbUnlikeScript") DefaultRedisScript<Long> thumbUnlikeScript,
-                      @Qualifier("thumbUnlikeRollbackScript") DefaultRedisScript<Long> thumbUnlikeRollbackScript) {
+                      @Qualifier("thumbUnlikeRollbackScript") DefaultRedisScript<Long> thumbUnlikeRollbackScript,
+                      @Qualifier("thumbCountStatScript") DefaultRedisScript<Long> thumbCountStatScript,
+                      @Qualifier("thumbCountDrainScript") DefaultRedisScript<List<String>> thumbCountDrainScript) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.thumbLikeScript = thumbLikeScript;
         this.thumbBloomInitScript = thumbBloomInitScript;
         this.thumbUnlikeScript = thumbUnlikeScript;
         this.thumbUnlikeRollbackScript = thumbUnlikeRollbackScript;
+        this.thumbCountStatScript = thumbCountStatScript;
+        this.thumbCountDrainScript = thumbCountDrainScript;
     }
 
     /**
@@ -152,6 +160,48 @@ public class ThumbCache {
             }
             stringRedisTemplate.execute(thumbBloomInitScript, List.of(key), args.toArray());
         }
+    }
+
+    /**
+     * 记录一次帖子点赞计数变更。返回 1 表示累计变更已达刷库阈值。
+     */
+    public long markLikeCountDirty(Long postId) {
+        Long signal = stringRedisTemplate.execute(
+                thumbCountStatScript,
+                List.of(
+                        RedisKeyConstants.THUMB_LIKE_COUNT_DIRTY_SET,
+                        RedisKeyConstants.THUMB_LIKE_COUNT_EVENT_COUNTER),
+                String.valueOf(postId),
+                String.valueOf(ThumbConstant.FLUSH_EVENT_THRESHOLD));
+        return signal == null ? 0L : signal;
+    }
+
+    /** 仅当尚未安排 10 秒延迟刷库时占位成功 */
+    public boolean tryScheduleDelayedFlush() {
+        Boolean ok = stringRedisTemplate.opsForValue().setIfAbsent(
+                RedisKeyConstants.THUMB_LIKE_COUNT_FLUSH_SCHEDULED,
+                "1",
+                Duration.ofSeconds(10));
+        return Boolean.TRUE.equals(ok);
+    }
+
+    public List<Long> takeDirtyPostIds() {
+        List<String> raw = stringRedisTemplate.execute(
+                thumbCountDrainScript,
+                List.of(RedisKeyConstants.THUMB_LIKE_COUNT_DIRTY_SET));
+        if (raw == null || raw.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return raw.stream().map(Long::valueOf).collect(Collectors.toList());
+    }
+
+    public void restoreDirtyPosts(List<Long> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return;
+        }
+        stringRedisTemplate.opsForSet().add(
+                RedisKeyConstants.THUMB_LIKE_COUNT_DIRTY_SET,
+                postIds.stream().map(String::valueOf).toArray(String[]::new));
     }
 
     /** Redis 里没有计数时返回 null，调用方改去数 tb_thumb */

@@ -17,6 +17,18 @@ spring:
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:LUCKY_COMMUNITY}
 
+mybatis:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+  producer:
+    group: ${ROCKETMQ_PRODUCER_GROUP:lucky-interaction-producer}
+    send-message-timeout: 3000
+    send-message-with-vip-channel: false
+
 management:
   endpoints:
     web:

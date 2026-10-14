@@ -46,4 +46,16 @@ public final class ThumbConstant {
 
     /** 攒批队列上限，满了阻塞（背压），防止内存被撑爆 */
     public static final int PERSIST_BUFFER_SIZE = 10_000;
+
+    /** 帖子点赞数刷库：累计多少次 Redis 计数变更后触发一次 */
+    public static final int FLUSH_EVENT_THRESHOLD = 500;
+
+    /** 延迟刷库：RocketMQ 延迟级别 3 ≈ 10 秒 */
+    public static final int MQ_DELAY_LEVEL_10S = 3;
+
+    public static final String MQ_FLUSH_TAG = "LIKE_COUNT_FLUSH";
+
+    public static final String MQ_FLUSH_DESTINATION = MQ_TOPIC + ":" + MQ_FLUSH_TAG;
+
+    public static final String MQ_FLUSH_CONSUMER_GROUP = "thumb-like-count-flush-consumer";
 }
