@@ -121,7 +121,7 @@ public class UserServiceImpl implements UserService {
         // 2. 签发双 Token 并登记会话状态(短 token 返回前端，长 token 由 Controller 写 Cookie)
         var issued = tokenIssuer.issuePair(user.getId());
         TokenDTO tokens = new TokenDTO(issued.accessToken(), issued.refreshToken());
-        // 3. 查用户全部角色，角色身份随登录一并返回(前端据此展示/路由)
+        // 3. 查用户全部角色，角色身份随登录一并返回
         List<Role> roles = permissionService.listRoles(user.getId());
         LoginVO loginvo = new LoginVO();
         loginvo.setUserId(user.getId());
@@ -138,7 +138,7 @@ public class UserServiceImpl implements UserService {
 
 
     /**
-     * 自助编辑资料：改的是 access token 里的登录人
+     * 编辑资料：改的是 access token 里的登录人
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -173,6 +173,22 @@ public class UserServiceImpl implements UserService {
         brief.setNickName(user.getNickName());
         brief.setIcon(user.getIcon());
         return brief;
+    }
+
+    @Override
+    public List<UserBriefVO> findBriefByIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userMapper.selectByIds(userIds.stream().distinct().toList()).stream()
+                .map(user -> {
+                    UserBriefVO brief = new UserBriefVO();
+                    brief.setUserId(user.getId());
+                    brief.setNickName(user.getNickName());
+                    brief.setIcon(user.getIcon());
+                    return brief;
+                })
+                .toList();
     }
 
     /**

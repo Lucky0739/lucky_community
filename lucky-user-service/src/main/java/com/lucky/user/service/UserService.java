@@ -7,6 +7,8 @@ import com.lucky.user.dto.UpdateProfileDTO;
 import com.lucky.user.api.vo.UserBriefVO;
 import com.lucky.user.vo.LoginVO;
 
+import java.util.List;
+
 public interface UserService {
 
     /**
@@ -35,4 +37,7 @@ public interface UserService {
 
     /** 帖子详情展示作者。用户不存在时返回 null。 */
     UserBriefVO getBrief(Long userId);
+
+    /** 批量查询用户昵称和头像。 */
+    List<UserBriefVO> findBriefByIds(List<Long> userIds);
 }
