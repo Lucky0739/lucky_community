@@ -7,6 +7,7 @@ import com.lucky.common.file.FileService;
 import com.lucky.user.auth.AuthService;
 import com.lucky.user.auth.cookie.RefreshCookieUtil;
 import com.lucky.user.auth.dto.RefreshResult;
+import com.lucky.user.api.dto.FindUsersByIdsDTO;
 import com.lucky.user.dto.LoginDTO;
 import com.lucky.user.dto.RegisterDTO;
 import com.lucky.user.dto.UpdateProfileDTO;
@@ -89,6 +90,14 @@ public class UserController {
     @GetMapping("/brief/{userId}")
     public Result<UserBriefVO> brief(@PathVariable("userId") Long userId) {
         return Result.success(userService.getBrief(userId));
+    }
+
+    /**
+     * 批量查询用户昵称和头像。评论列表等场景调用。
+     */
+    @PostMapping("/brief/batch")
+    public Result<java.util.List<UserBriefVO>> findByIds(@RequestBody @Valid FindUsersByIdsDTO findUsersByIdsDTO) {
+        return Result.success(userService.findBriefByIds(findUsersByIdsDTO.getIds()));
     }
 
     /**
