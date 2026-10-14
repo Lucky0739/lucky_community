@@ -55,6 +55,17 @@ public class AdminPostController {
     }
 
     /**
+     * 手动重跑某帖的 AI 审核。用于自动重试已用尽的失败帖
+     * @param postId
+     * @return
+     */
+    @PostMapping("/{postId}/reanalyze")
+    public Result<String> reanalyze(@PathVariable("postId") Long postId) {
+        adminPostService.reanalyze(UserContext.getUserId(), postId);
+        return Result.success();
+    }
+
+    /**
      * 删除帖子
      * @param postId
      * @return

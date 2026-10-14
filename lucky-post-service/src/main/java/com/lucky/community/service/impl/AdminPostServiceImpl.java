@@ -3,6 +3,7 @@ package com.lucky.community.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.vo.PageResult;
+import com.lucky.community.ai.AiModerationRetryService;
 import com.lucky.community.ai.AiModerationService;
 import com.lucky.community.cache.PostDetailCache;
 import com.lucky.community.dto.AdminPostQueryDTO;
@@ -45,6 +46,7 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final UserReadMapper userReadMapper;
     private final PostDetailCache postDetailCache;
     private final AiModerationService aiModerationService;
+    private final AiModerationRetryService aiModerationRetryService;
     private final PermissionSupport permissionSupport;
 
     /**
@@ -58,7 +60,8 @@ public class AdminPostServiceImpl implements AdminPostService {
         requirePlatformAdmin(operatorId);
         int pageNum = query.getPageNum() == null ? 1 : query.getPageNum();
         int pageSize = query.getPageSize() == null ? 10 : query.getPageSize();
-        long total = postMapper.countAdminPage(query.getBarId(), query.getPending());
+        long total = postMapper.countAdminPage(
+                query.getBarId(), query.getPending(), query.getAnalysisFailed());
         PageResult<AdminPostVO> result = new PageResult<>();
         result.setPageNum(pageNum);
         result.setPageSize(pageSize);
@@ -68,7 +71,8 @@ public class AdminPostServiceImpl implements AdminPostService {
             return result;
         }
         List<Post> posts = postMapper.selectAdminPage(
-                query.getBarId(), query.getPending(), pageSize, (pageNum - 1) * pageSize);
+                query.getBarId(), query.getPending(), query.getAnalysisFailed(),
+                pageSize, (pageNum - 1) * pageSize);
         result.setRecords(toAdminPosts(posts));
         return result;
     }
@@ -120,6 +124,25 @@ public class AdminPostServiceImpl implements AdminPostService {
         runAfterCommit(() -> aiModerationService.deleteVector(postId));
     }
 
+    /**
+     * 手动重跑 AI 审核。用于自动重试已用尽的失败帖。
+     *
+     * <p>不在事务里：重投本身只是往线程池投递 + 清零计数。投递成功后由
+     * {@link AiModerationService} 异步回写状态，不阻塞后台请求。
+     */
+    @Override
+    public void reanalyze(Long operatorId, Long postId) {
+        requirePlatformAdmin(operatorId);
+        Post post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new BusinessException("帖子不存在");
+        }
+        if (!aiModerationRetryService.reanalyze(postId)) {
+            // 正文读不到 / 线程池满 / 审核关闭。计数已在内部清零，用户可稍后重试
+            throw new BusinessException("重投 AI 审核失败，请稍后重试");
+        }
+    }
+
     private List<AdminPostVO> toAdminPosts(List<Post> posts) {
         if (posts.isEmpty()) {
             return List.of();
@@ -145,6 +168,10 @@ public class AdminPostServiceImpl implements AdminPostService {
             row.setNickName(author == null ? null : author.getNickName());
             row.setTitle(post.getTitle());
             row.setContentPreview(post.getContentPreview());
+            row.setEventStatus(post.getEventStatus());
+            row.setEmbedStatus(post.getEmbedStatus());
+            row.setAnalysisStatus(post.getAnalysisStatus());
+            row.setAnalysisRetryCount(post.getAnalysisRetryCount());
             PostAnalysis analysis = analysisByPostId.get(post.getId());
             if (analysis != null) {
                 row.setRiskLevel(analysis.getRiskLevel());

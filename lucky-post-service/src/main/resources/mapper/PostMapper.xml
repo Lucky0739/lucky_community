@@ -4,7 +4,7 @@
 <mapper namespace="com.lucky.community.mapper.PostMapper">
 
     <sql id="PostColumns">
-        id, bar_id, user_id, title, content, cover_image, image_count, deleted,
+        id, bar_id, user_id, title, content_preview, content_uuid, cover_image, image_count, deleted,
         event_status, embed_status, analysis_status, analysis_retry_count, analysis_time,
         create_time, update_time
     </sql>
@@ -21,10 +21,10 @@
     </sql>
 
     <insert id="insert">
-        INSERT INTO tb_post (id, bar_id, user_id, title, content, cover_image, image_count, deleted,
+        INSERT INTO tb_post (id, bar_id, user_id, title, content_preview, content_uuid, cover_image, image_count, deleted,
                              event_status, embed_status, analysis_status, analysis_retry_count,
                              create_time, update_time)
-        VALUES (#{id}, #{barId}, #{userId}, #{title}, #{content}, #{coverImage}, #{imageCount}, 0,
+        VALUES (#{id}, #{barId}, #{userId}, #{title}, #{contentPreview}, #{contentUuid}, #{coverImage}, #{imageCount}, 0,
                 #{eventStatus}, #{embedStatus}, #{analysisStatus}, #{analysisRetryCount},
                 #{createTime}, #{updateTime})
     </insert>
@@ -35,10 +35,11 @@
         WHERE id = #{id} AND deleted = 0
     </select>
 
+    <!-- 正文是 upsert 到同一个 Cassandra 主键，所以这里不动 content_uuid -->
     <update id="updateContent">
         UPDATE tb_post
         SET title = #{title},
-            content = #{content},
+            content_preview = #{contentPreview},
             cover_image = #{coverImage},
             image_count = #{imageCount},
             update_time = CURRENT_TIMESTAMP
@@ -62,37 +63,42 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
-    <update id="updateAnalysisStatus">
+    <!-- 三个状态列一次写齐。取值见 com.lucky.community.ai.PostAiStatus 与 sql/post.sql 的列注释 -->
+    <update id="updateAiStatus">
         UPDATE tb_post
-        SET analysis_status = #{analysisStatus},
+        SET event_status = #{eventStatus},
+            embed_status = #{embedStatus},
+            analysis_status = #{analysisStatus},
             <if test="analysisTime != null">analysis_time = #{analysisTime},</if>
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id} AND deleted = 0
     </update>
 
-    <sql id="ApprovedFilter">
+    <!-- 终态失败才可重试：分析失败(3) / 向量写入失败(3) / 事件投递失败(2)。
+         处理中(1)不进这个集合，正在跑的帖不会被自己捞回来 -->
+    <select id="selectRetryable" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
         FROM tb_post
         WHERE deleted = 0
-          AND <include refid="ApprovedExists"/>
-        <if test="barId != null">
-            AND bar_id = #{barId}
-        </if>
-        <if test="userId != null">
-            AND user_id = #{userId}
-        </if>
-    </sql>
-
-    <select id="countApprovedPage" resultType="long">
-        SELECT COUNT(*)
-        <include refid="ApprovedFilter"/>
+          AND analysis_retry_count &lt; #{maxRetry}
+          AND (analysis_status = 3 OR embed_status = 3 OR event_status = 2)
+        ORDER BY id
+        LIMIT #{limit}
     </select>
 
-    <select id="selectApprovedPage" resultType="com.lucky.community.entity.Post">
-        SELECT <include refid="PostColumns"/>
-        <include refid="ApprovedFilter"/>
-        ORDER BY id DESC
-        LIMIT #{limit} OFFSET #{offset}
-    </select>
+    <update id="incrementAnalysisRetry">
+        UPDATE tb_post
+        SET analysis_retry_count = analysis_retry_count + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="resetAnalysisRetry">
+        UPDATE tb_post
+        SET analysis_retry_count = 0,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted = 0
+    </update>
 
     <select id="selectApprovedFeed" resultType="com.lucky.community.entity.Post">
         SELECT <include refid="PostColumns"/>
@@ -133,5 +139,54 @@
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
+    </select>
+
+    <select id="countAdminPage" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_post p
+        LEFT JOIN tb_post_analysis a ON a.post_id = p.id
+        WHERE p.deleted = 0
+        <if test="barId != null">
+            AND p.bar_id = #{barId}
+        </if>
+        <if test="pending != null and pending">
+            AND a.handler_action IS NULL
+        </if>
+        <if test="analysisFailed != null and analysisFailed">
+            AND p.analysis_status = 3
+        </if>
+    </select>
+
+    <select id="selectLatestApprovedByBarIds" resultType="com.lucky.community.entity.Post">
+        SELECT DISTINCT ON (bar_id)
+               <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedExists"/>
+          AND bar_id IN
+        <foreach collection="barIds" item="barId" open="(" separator="," close=")">
+            #{barId}
+        </foreach>
+        ORDER BY bar_id, id DESC
+    </select>
+
+    <select id="selectAdminPage" resultType="com.lucky.community.entity.Post">
+        SELECT p.id, p.bar_id, p.user_id, p.title, p.content_preview, p.content_uuid, p.cover_image, p.image_count, p.deleted,
+               p.event_status, p.embed_status, p.analysis_status, p.analysis_retry_count, p.analysis_time,
+               p.create_time, p.update_time
+        FROM tb_post p
+        LEFT JOIN tb_post_analysis a ON a.post_id = p.id
+        WHERE p.deleted = 0
+        <if test="barId != null">
+            AND p.bar_id = #{barId}
+        </if>
+        <if test="pending != null and pending">
+            AND a.handler_action IS NULL
+        </if>
+        <if test="analysisFailed != null and analysisFailed">
+            AND p.analysis_status = 3
+        </if>
+        ORDER BY p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 </mapper>

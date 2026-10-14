@@ -16,4 +16,7 @@ public class AdminPostQueryDTO extends OffsetPageQueryDTO {
 
     /** true 时只看还没有人工结论的帖子 */
     private Boolean pending;
+
+    /** true 时只看 AI 分析失败的帖子（自动重试已用尽、待人工重跑） */
+    private Boolean analysisFailed;
 }

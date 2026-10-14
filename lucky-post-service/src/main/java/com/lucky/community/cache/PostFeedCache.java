@@ -65,7 +65,7 @@ public class PostFeedCache {
      * <p><b>但不含调用者 userId</b>——互动字段（liked/favorited）是拷贝之后才填的，
      * 缓存内容对所有人一致。若哪天有人把 {@code UserContext.getUserId()} 加进 key，
      * 每个用户的浏览都会产生一份独立缓存，key 空间立刻爆炸且命中率趋近于零。
-     * 这与 {@code PostQueryDTO.userId}（作者筛选，属于查询参数）是两回事，别混淆。
+     * 这与 {@code PostFeedQueryDTO.userId}（作者筛选，属于查询参数）是两回事，别混淆。
      */
     public static String filterKey(Long barId, Long userId, int size) {
         return (barId == null ? "" : barId) + ":" + (userId == null ? "" : userId) + ":" + size;

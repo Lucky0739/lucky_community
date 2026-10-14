@@ -18,4 +18,10 @@ public interface AdminPostService {
 
     /** 平台管理员直接删帖 */
     void deletePost(Long operatorId, Long postId);
+
+    /**
+     * 手动重跑某帖的 AI 审核。用于自动重试已用尽、落进「人工待审」的失败帖：
+     * 清零重试计数后重投 {@code /govern}，让自动重试也能重新接管。
+     */
+    void reanalyze(Long operatorId, Long postId);
 }

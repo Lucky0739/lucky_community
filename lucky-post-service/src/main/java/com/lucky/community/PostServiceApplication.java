@@ -1,34 +1,24 @@
 package com.lucky.community;
 
+import com.lucky.common.net.LoopbackProxyBypass;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableFeignClients
+// 用户服务的 UserFeignApi、KV 服务的 KeyValueFeignApi 都在别的包下，不在本服务的包里。
+// 不显式列出来的话，@EnableFeignClients 只扫注解所在包，那些客户端不会被注册。
+@EnableFeignClients(basePackages = {
+        "com.lucky.community", "com.lucky.user.api", "com.lucky.kv.api"})
 @SpringBootApplication(scanBasePackages = "com.lucky.community")
 @MapperScan("com.lucky.community.**.mapper")
+// AI 审核失败帖的定时重试任务（AiModerationRetryService）靠它注册
+@EnableScheduling
 public class PostServiceApplication {
 
     public static void main(String[] args) {
-        bypassProxyForLoopback();
+        LoopbackProxyBypass.enable();
         SpringApplication.run(PostServiceApplication.class, args);
-    }
-
-    private static void bypassProxyForLoopback() {
-        String loopbackHosts = "localhost|127.*|[::1]";
-        appendNonProxyHosts("socksNonProxyHosts", loopbackHosts);
-        appendNonProxyHosts("http.nonProxyHosts", loopbackHosts);
-    }
-
-    private static void appendNonProxyHosts(String propertyName, String loopbackHosts) {
-        String configuredHosts = System.getProperty(propertyName, "");
-        if (configuredHosts.isBlank()) {
-            System.setProperty(propertyName, loopbackHosts);
-            return;
-        }
-        if (!configuredHosts.contains("127.*")) {
-            System.setProperty(propertyName, configuredHosts + "|" + loopbackHosts);
-        }
     }
 }

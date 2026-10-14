@@ -15,14 +15,6 @@ import org.springframework.util.StringUtils;
 
 /**
  * 帖子正文（Cassandra，落在 KV 服务）的读写封装。
- *
- * <p>注意：KV 的这两个端点返回的是 {@link Result}（success / errorMsg / data），
- * <b>不是</b> {@link com.lucky.common.Response}（code / msg / data）。成功判定只能看
- * {@code success} 字段 —— 别把评论服务那套 {@code getCode() != Response.CODE_SUCCESS}
- * 抄过来，评论的批量写正文才返回 {@code Response}。
- *
- * <p>另外 KV 侧把业务异常交给全局异常处理器转成了「HTTP 200 + Result.fail」，
- * 所以失败不会以 5xx 形式出现，同样要靠 {@code success} 判断。
  */
 @Slf4j
 @Component
@@ -60,9 +52,6 @@ public class KeyValueRpcService {
 
     /**
      * 按 Cassandra 主键读正文。
-     *
-     * <p><b>软失败</b>：读不到就返回 null，由调用方回退到 {@code content_preview}。
-     * 正文读取不该让详情页 500 —— 摘要总还是有的。
      */
     public String find(String contentUuid) {
         if (!StringUtils.hasText(contentUuid)) {
@@ -84,10 +73,8 @@ public class KeyValueRpcService {
             return null;
         }
     }
-
     /**
      * 删帖时清掉正文。Cassandra 那张表没有 TTL，留着会永久堆积。
-     * 尽力而为：失败只记日志，不能影响已经提交的删帖。
      */
     public void delete(String contentUuid) {
         if (!StringUtils.hasText(contentUuid)) {

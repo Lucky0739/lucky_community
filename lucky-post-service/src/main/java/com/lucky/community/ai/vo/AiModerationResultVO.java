@@ -43,6 +43,14 @@ public class AiModerationResultVO {
     /** 是否发生了降级 */
     private Boolean degraded;
 
+    /**
+     * Python 侧本次是否成功把帖子写进了向量库（tb_post.embed_status 的来源）。
+     * 缺字段 / 老版本不返回时为 null，调用方按「未成功」回写 —— 宁可让它进重试，
+     * 也别把它误判成写成功。
+     */
+    @JsonProperty("vector_written")
+    private Boolean vectorWritten;
+
     /** 降级原因，未降级时为 null */
     @JsonProperty("degrade_reason")
     private String degradeReason;

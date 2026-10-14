@@ -24,8 +24,6 @@ public enum RedisKeyManage {
 
     /**
      * 轮换宽限记录：login:rotated:{oldJti} -> 新 refresh 的 jti，TTL = 宽限期
-     * <p>按 oldJti 独立成 key(不用 userId 做 Hash)，避免多设备互相延长 TTL 与无界增长。
-     * 值为并发轮换产生会话的 jti(不是 token 凭证)。读取方需用会话存活校验兜底。
      */
     ROTATED("login:rotated:%s");
 

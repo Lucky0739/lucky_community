@@ -32,11 +32,6 @@ import java.util.concurrent.RejectedExecutionException;
 @Service
 public class AiModerationService {
 
-    /** 内容分析状态：处理中。取值与 tb_post.analysis_status 的列注释一致 */
-    private static final int STATUS_PROCESSING = 1;
-    private static final int STATUS_SUCCESS = 2;
-    private static final int STATUS_FAILED = 3;
-
     /**
      * 序列化 evidence_json 用。
      */
@@ -78,9 +73,9 @@ public class AiModerationService {
             return true;
         } catch (RejectedExecutionException e) {
             // 被拒绝意味着任务永远不会执行，状态会一直停在「待处理」(0)。
-            // 必须主动置为失败，否则 AI 侧扫待办会反复把它捞出来却永远处理不掉。
+            // 必须主动置为失败，否则重试任务会反复把它捞出来却永远处理不掉。
             log.warn("审核线程池已满，任务被拒绝，postId={}", postId);
-            markStatus(postId, STATUS_FAILED);
+            markFailed(postId);
             return false;
         }
     }
@@ -90,7 +85,7 @@ public class AiModerationService {
      */
     private void analyze(Long postId, Long barId, Long userId, String title,
                          String content, List<String> imageUrls) {
-        markStatus(postId, STATUS_PROCESSING);
+        markProcessing(postId);
 
         AiModerationResultVO result;
         try {
@@ -104,25 +99,27 @@ public class AiModerationService {
                     .body(AiModerationResultVO.class);
         } catch (Exception e) {
             log.warn("调用 AI 审核服务失败，postId={}，原因={}", postId, e.toString());
-            markStatus(postId, STATUS_FAILED);
+            markFailed(postId);
             return;
         }
 
         if (result == null) {
             log.warn("AI 审核服务返回空响应体，postId={}", postId);
-            markStatus(postId, STATUS_FAILED);
+            markFailed(postId);
             return;
         }
         // assessment 为空 = 没拿到结论（模型拒答/解析失败）。
         // 按文档 6.2 标记需人工：置为失败，而不是当成「无风险」放过。
         if (result.getAssessment() == null) {
             log.warn("AI 审核未给出结论，postId={}，原因={}", postId, result.getDegradeReason());
-            markStatus(postId, STATUS_FAILED);
+            markFailed(postId);
             return;
         }
         try {
             persist(postId, result);
-            markStatus(postId, STATUS_SUCCESS);
+            // 分析成功但向量是否写入由 Python 侧单独回报：两列互不影响，
+            // 所以这里可能落到 ANALYSIS_SUCCESS + EMBED_FAILED 的组合
+            markSuccess(postId, Boolean.TRUE.equals(result.getVectorWritten()));
             if (Boolean.TRUE.equals(result.getDegraded())) {
                 // 有结论但被降级过（归一化兜底或引用不实），落库了但值得人工看一眼
                 log.warn("AI 审核结论被降级，postId={}，原因={}", postId, result.getDegradeReason());
@@ -132,7 +129,7 @@ public class AiModerationService {
             }
         } catch (Exception e) {
             log.error("AI 审核结果落库失败，postId={}", postId, e);
-            markStatus(postId, STATUS_FAILED);
+            markFailed(postId);
         }
     }
 
@@ -204,15 +201,46 @@ public class AiModerationService {
         }
     }
 
+    /** 开始调 /govern：分析、向量写入都进入「处理中」。event_status 没有中间态，留在待投递 */
+    private void markProcessing(Long postId) {
+        applyStatus(postId,
+                PostAiStatus.EVENT_PENDING,
+                PostAiStatus.EMBED_PROCESSING,
+                PostAiStatus.ANALYSIS_PROCESSING,
+                null);
+    }
+
     /**
-     * 更新 tb_post.analysis_status
+     * 这一次 /govern 没拿到结论：投递失败 / 分析失败 / 向量写入失败，三列一起落到失败态。
+     * 重试任务据此把它捞回来。
      */
-    private void markStatus(Long postId, int status) {
+    private void markFailed(Long postId) {
+        applyStatus(postId,
+                PostAiStatus.EVENT_FAILED,
+                PostAiStatus.EMBED_FAILED,
+                PostAiStatus.ANALYSIS_FAILED,
+                null);
+    }
+
+    /** 拿到结论：事件已投递 + 分析成功；向量是否写进去由 {@code vectorWritten} 单独决定 */
+    private void markSuccess(Long postId, boolean vectorWritten) {
+        applyStatus(postId,
+                PostAiStatus.EVENT_DELIVERED,
+                vectorWritten ? PostAiStatus.EMBED_SUCCESS : PostAiStatus.EMBED_FAILED,
+                PostAiStatus.ANALYSIS_SUCCESS,
+                LocalDateTime.now());
+    }
+
+    /**
+     * 一次写齐三个管道状态列并踢掉详情缓存。
+     */
+    private void applyStatus(Long postId, int eventStatus, int embedStatus,
+                             int analysisStatus, LocalDateTime analysisTime) {
         try {
-            LocalDateTime analysisTime = status == STATUS_SUCCESS ? LocalDateTime.now() : null;
-            postMapper.updateAnalysisStatus(postId, status, analysisTime);
+            postMapper.updateAiStatus(postId, eventStatus, embedStatus, analysisStatus, analysisTime);
         } catch (Exception e) {
-            log.warn("更新 AI 审核状态失败，postId={}，目标状态={}", postId, status, e);
+            log.warn("更新 AI 管道状态失败，postId={}，event={}，embed={}，analysis={}",
+                    postId, eventStatus, embedStatus, analysisStatus, e);
         } finally {
             // 详情缓存里带着 analysis_status / 风险字段；状态一变就必须踢掉，
             // 否则用户会一直看到「待处理」。清缓存失败只影响刷新时机，不影响正确性。

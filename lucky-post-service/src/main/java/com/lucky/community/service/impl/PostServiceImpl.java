@@ -4,16 +4,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.lucky.bloom.LongBloomFilter;
-import com.lucky.community.bar.entity.Bar;
-import com.lucky.community.bar.entity.BarManager;
-import com.lucky.community.bar.mapper.BarManagerMapper;
-import com.lucky.community.bar.mapper.BarMapper;
+import com.lucky.community.entity.Bar;
+import com.lucky.community.entity.BarManager;
+import com.lucky.community.mapper.BarManagerMapper;
+import com.lucky.community.mapper.BarMapper;
 import com.lucky.community.entity.HandlerAction;
 import com.lucky.community.cache.PostDetailCache;
 import com.lucky.community.cache.PostFeedCache;
 import com.lucky.community.dto.CreatePostDTO;
 import com.lucky.community.dto.PostFeedQueryDTO;
-import com.lucky.community.dto.PostQueryDTO;
 import com.lucky.community.dto.UpdatePostDTO;
 import com.lucky.community.entity.Post;
 import com.lucky.community.entity.PostAnalysis;
@@ -24,22 +23,20 @@ import com.lucky.community.mapper.PostImageMapper;
 import com.lucky.community.mapper.PostMapper;
 import com.lucky.community.support.mapper.UserReadMapper;
 import com.lucky.community.support.PermissionSupport;
+import com.lucky.community.rpc.KeyValueRpcService;
 import com.lucky.community.ai.AiModerationService;
 import com.lucky.community.ai.vo.EvidenceVO;
 import com.lucky.common.file.FileService;
 import com.lucky.community.service.PostService;
 import com.lucky.community.vo.PageVO;
+import com.lucky.community.vo.PostBaseVO;
 import com.lucky.community.vo.PostDetailVO;
 import com.lucky.community.vo.PostSummaryVO;
-import com.lucky.community.vo.PostViewVO;
-import com.lucky.community.comment.vo.CommentVO;
-import com.lucky.community.common.PageResult;
-import com.lucky.community.support.CommentViewSupport;
+import com.lucky.common.vo.PageResult;
 import com.lucky.community.support.PostEngagementSupport;
 import cn.hutool.core.util.IdUtil;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.constant.PostConstant;
-import com.lucky.common.constant.CommentConstant;
 import com.lucky.common.dto.PageQueryDTO;
 import com.lucky.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -51,15 +48,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Function;
@@ -81,8 +81,6 @@ public class PostServiceImpl implements PostService {
 
     /**
      * 公开可见：人工放行（未处置、警告），或 AI 判无风险且尚未人工处置。
-     * 待审、审核失败、有风险且无人放行的帖子不出现在列表和详情里。
-     * 删帖、封禁会把 deleted 置 1，逻辑删除本身就会挡住。
      */
 
     /**
@@ -103,8 +101,8 @@ public class PostServiceImpl implements PostService {
     private final LongBloomFilter postBloomFilter;
     private final AiModerationService aiModerationService;
     private final PostEngagementSupport postEngagementSupport;
-    private final CommentViewSupport commentViewSupport;
     private final PermissionSupport permissionSupport;
+    private final KeyValueRpcService keyValueRpcService;
 
     @Qualifier("postImageQueryExecutor")
     private final ThreadPoolTaskExecutor postImageQueryExecutor;
@@ -139,7 +137,7 @@ public class PostServiceImpl implements PostService {
     @Override
     // 事务，要么同时成功要么同时失败
     @Transactional(rollbackFor = Exception.class)
-    public PostDetailVO createPost(Long userId, CreatePostDTO createPostDTO) {
+    public PostBaseVO createPost(Long userId, CreatePostDTO createPostDTO) {
         // 1. 校验贴吧
         Bar bar = barMapper.selectById(createPostDTO.getBarId());
         if (bar == null || bar.getStatus() == null || bar.getStatus() != Bar.STATUS_NORMAL) {
@@ -151,12 +149,15 @@ public class PostServiceImpl implements PostService {
         List<String> imageUrls = objectNames.stream()
                 .map(fileService::toPublicUrl)
                 .toList();
-        // 3. 写库。这一步已经没有任何远程 I/O——图片在预上传时就已经落 MinIO 了，
+        // 3. 先把正文写 Cassandra，再写库。
         Post post = new Post();
+        post.setId(IdUtil.getSnowflakeNextId());
         post.setBarId(createPostDTO.getBarId());
         post.setUserId(userId);
         post.setTitle(createPostDTO.getTitle());
         post.setContent(createPostDTO.getContent());
+        post.setContentUuid(keyValueRpcService.create(post.getId(), post.getContent()));
+        post.setContentPreview(Objects.requireNonNullElse(preview(post.getContent()), ""));
         applyCover(post, imageUrls);
         LocalDateTime now = LocalDateTime.now(clock).withNano(0);
         post.setCreateTime(now);
@@ -166,10 +167,10 @@ public class PostServiceImpl implements PostService {
         post.setEmbedStatus(0);
         post.setAnalysisStatus(0);
         post.setAnalysisRetryCount(0);
-        post.setId(IdUtil.getSnowflakeNextId());
-        postMapper.insert(post);   // MP 回填雪花ID
+        postMapper.insert(post);
         // 放入布隆过滤器
         postBloomFilter.add(post.getId());
+        // 投递给AI模块审核
         registerAfterCommit(() -> aiModerationService.submit(
                 post.getId(), post.getBarId(), post.getUserId(),
                 post.getTitle(), post.getContent(), imageUrls));
@@ -182,28 +183,24 @@ public class PostServiceImpl implements PostService {
             postImage.setSortNo(i);
             postImageMapper.insert(postImage);
         }
-        // 直接用手上这份 post 组装，不再重查：时间字段已在 insert 前显式填好，
-        PostDetailVO postDetailVO = new PostDetailVO();
-        postDetailVO.setPostId(post.getId());
-        postDetailVO.setBarId(post.getBarId());
-        // 无需判空：bar 在上面已经校验过存在且状态正常，这里必然非 null
-        postDetailVO.setBarName(bar.getName());
-        postDetailVO.setUserId(post.getUserId());
-        // 作者可能已被逻辑删除(selectById 自动过滤)，渲染为 null 而不是让请求失败
-        postDetailVO.setTitle(post.getTitle());
-        postDetailVO.setContent(post.getContent());
-        postDetailVO.setImages(imageUrls);
-        postDetailVO.setAnalysisStatus(post.getAnalysisStatus());
-        // 不填分析结论字段：刚发的帖子必然 analysis_status=0，没有结论可填
-        postDetailVO.setCreateTime(post.getCreateTime());
-        postDetailVO.setUpdateTime(post.getUpdateTime());
-        fillDetailInteraction(postDetailVO);
-        return postDetailVO;
+        // 直接用手上这份 post 组装，不再重查：时间字段已在 insert 前显式填好。
+        // 返回帖子本体：刚发的帖子 AI 还没跑，没有结论可填
+        PostBaseVO postBaseVO = new PostBaseVO();
+        fillPostFields(postBaseVO, post, bar, imageUrls, post.getContent());
+        fillDetailInteraction(postBaseVO);
+        return postBaseVO;
     }
 
+    /**
+     * 编辑帖子
+     * @param operatorId
+     * @param postId
+     * @param updatePostDTO
+     * @return
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public PostDetailVO updatePost(Long operatorId, Long postId, UpdatePostDTO updatePostDTO) {
+    public PostBaseVO updatePost(Long operatorId, Long postId, UpdatePostDTO updatePostDTO) {
         Post post = postMapper.selectById(postId);
         if (post == null) {
             throw new BusinessException("帖子不存在");
@@ -215,14 +212,18 @@ public class PostServiceImpl implements PostService {
         validateImages(objectNames);
         List<String> urls = objectNames.stream().map(fileService::toPublicUrl).toList();
 
+        // 要比正文得先从 Cassandra 取回旧值 —— selectById 读出来的 Post.content 是 null
+        // KV 读不到时 fetchPostBody 返回 null，按「变了」保守处理：宁可多重审一次，也别漏审。
         boolean textChanged = !Objects.equals(post.getTitle(), updatePostDTO.getTitle());
-        if (!Objects.equals(post.getContent(), updatePostDTO.getContent())) {
-            textChanged = true;
+        if (!textChanged) {
+            textChanged = !Objects.equals(fetchPostBody(post), updatePostDTO.getContent());
         }
+        // 正文 upsert 到同一个 Cassandra 主键（由 postId 推导），content_uuid 不变
+        keyValueRpcService.create(postId, updatePostDTO.getContent());
         Post patch = new Post();
         patch.setId(postId);
         patch.setTitle(updatePostDTO.getTitle());
-        patch.setContent(updatePostDTO.getContent());
+        patch.setContentPreview(Objects.requireNonNullElse(preview(updatePostDTO.getContent()), ""));
         patch.setCoverImage(coverOf(urls));
         patch.setImageCount(urls.size());
         postMapper.updateContent(patch);
@@ -250,11 +251,12 @@ public class PostServiceImpl implements PostService {
             throw new BusinessException("帖子不存在");
         }
         Bar bar = barMapper.selectById(saved.getBarId());
-        UserBrief author = userReadMapper.selectById(saved.getUserId());
-        PostAnalysis analysis = loadAnalysisIfSuccess(saved);
-        PostDetailVO postDetailVO = assembleDetail(saved, bar, author, urls, analysis);
-        fillDetailInteraction(postDetailVO);
-        return postDetailVO;
+        // 不查 analysis：正文一变审核就被重置，旧结论不该再随响应返回
+        // 正文刚从手上这份 DTO 写进去，直接传下去，省一次 KV 回读
+        PostBaseVO postBaseVO = new PostBaseVO();
+        fillPostFields(postBaseVO, saved, bar, urls, updatePostDTO.getContent());
+        fillDetailInteraction(postBaseVO);
+        return postBaseVO;
     }
 
     // 删除帖子业务逻辑，删除Caffeine和Redis放到事务执行完后执行
@@ -273,6 +275,9 @@ public class PostServiceImpl implements PostService {
         postImageMapper.logicalDeleteByPostId(postId);
         registerAfterCommit(() -> postDetailCache.evict(postId));
         registerAfterCommit(() -> aiModerationService.deleteVector(postId));
+        // Cassandra 那张表没有 TTL，删帖后正文不会再有读者（逻辑删除不可恢复），顺手清掉。
+        // 放提交后执行：清正文失败不能回滚已经生效的逻辑删除。
+        registerAfterCommit(() -> keyValueRpcService.delete(post.getContentUuid()));
     }
 
     /**
@@ -308,22 +313,10 @@ public class PostServiceImpl implements PostService {
         return postDetailVO;
     }
 
-    @Override
-    public PostViewVO getView(Long postId) {
-        PostDetailVO post = getDetail(postId);
-        CommentViewSupport.RootCommentPage comments = commentViewSupport.loadRootFirstPage(
-                postId, CommentConstant.FIRST_PAGE_SIZE);
-        PostViewVO postViewVO = new PostViewVO();
-        postViewVO.setPost(post);
-        postViewVO.setComments(comments.records());
-        postViewVO.setRootCommentTotal(comments.total());
-        return postViewVO;
-    }
-
     /**
-     * 回源查库（缓存未命中时执行）
+     * 帖子存在且对用户可见就返回它，否则 null。详情回源用。
      */
-    private PostDetailVO loadDetail(Long postId) {
+    private Post loadVisiblePost(Long postId) {
         // 一定不存在 → 直接短路，一条 SQL 都不打。这是防缓存穿透的关键一步
         if (!postBloomFilter.mightContain(postId)) {
             return null;
@@ -331,6 +324,17 @@ public class PostServiceImpl implements PostService {
         // 其余情况都要查库：过滤器返回 true 只代表「可能存在」，也可能是假阳性
         Post post = postMapper.selectById(postId);
         if (post == null || !isPubliclyVisible(postId)) {
+            return null;
+        }
+        return post;
+    }
+
+    /**
+     * 回源查库（缓存未命中时执行）
+     */
+    private PostDetailVO loadDetail(Long postId) {
+        Post post = loadVisiblePost(postId);
+        if (post == null) {
             return null;
         }
         // 图片与贴吧/作者/分析互不依赖：先把图片查询丢进线程池，本线程继续查其余表。
@@ -341,69 +345,33 @@ public class PostServiceImpl implements PostService {
         return assembleDetail(post, bar, author, joinImageUrls(imageUrls), analysis);
     }
 
+    /**
+     * 分页查询帖子
+     * @param postFeedQueryDTO
+     * @return
+     */
     @Override
-    public PageResult<PostSummaryVO> pagePosts(PostQueryDTO query) {
-        Integer pageNum = query.getPageNum();
-        Integer pageSize = query.getPageSize();
-        int pn = pageNum == null ? 1 : pageNum;
-        int ps = pageSize == null ? 10 : pageSize;
-        long total = postMapper.countApprovedPage(query.getBarId(), query.getUserId());
-        List<Post> posts = postMapper.selectApprovedPage(query.getBarId(), query.getUserId(), ps, (pn - 1) * ps);
-        PageResult<PostSummaryVO> result = new PageResult<>();
-        result.setPageNum(pn);
-        result.setPageSize(ps);
-        result.setTotal(total);
-        if (posts.isEmpty()) {
-            result.setRecords(List.of());
-            return result;
-        }
-        Set<Long> userIds = posts.stream().map(Post::getUserId).collect(Collectors.toSet());
-        Set<Long> barIds = posts.stream().map(Post::getBarId).collect(Collectors.toSet());
-        Map<Long, UserBrief> userById = userReadMapper.selectByIds(userIds.stream().toList()).stream()
-                .collect(Collectors.toMap(UserBrief::getId, Function.identity()));
-        Map<Long, Bar> barById = barMapper.selectByIds(barIds.stream().toList()).stream()
-                .collect(Collectors.toMap(Bar::getId, Function.identity()));
-        result.setRecords(posts.stream()
-                .map(post -> toSummaryVO(post,
-                        barById.get(post.getBarId()),
-                        userById.get(post.getUserId())))
-                .toList());
-        fillSummaryInteraction(result.getRecords());
-        return result;
-    }
-
-    @Override
-    public PageVO<PostSummaryVO> feedPosts(PostFeedQueryDTO query) {
-        // 这里自己夹一道：size 不像 pageSize 有分页插件的 maxLimit 兜底，
+    public PageVO<PostSummaryVO> feedPosts(PostFeedQueryDTO postFeedQueryDTO) {
         // 而校验注解只覆盖走 HTTP 进来的请求，服务被内部调用时不受它保护
-        Integer requestedSize = query.getSize();
-        int size = requestedSize == null
-                ? PageQueryDTO.DEFAULT_SIZE
-                : Math.min(Math.max(requestedSize, 1), PageQueryDTO.MAX_SIZE);
-
+        Integer requestedSize = postFeedQueryDTO.getPageSize();
+        int size = requestedSize == null ? PageQueryDTO.DEFAULT_SIZE : Math.min(Math.max(requestedSize, 1), PageQueryDTO.MAX_SIZE);
         List<PostSummaryVO> records;
-        if (query.getLastId() == null) {
+        if (postFeedQueryDTO.getLastId() == null) {
             // 首屏走本机缓存。缓存里那份的 liked/favorited 恒为 null，
-            // 而 getFirstPage 返回的是副本——下面填互动字段污染不到缓存
-            String filterKey = PostFeedCache.filterKey(query.getBarId(), query.getUserId(), size);
+            String filterKey = PostFeedCache.filterKey(postFeedQueryDTO.getBarId(), postFeedQueryDTO.getUserId(), size);
             records = postFeedCache.getFirstPage(filterKey,
-                    () -> assembleFeedBase(query.getBarId(), query.getUserId(), null, size));
+                    () -> assembleFeedBase(postFeedQueryDTO.getBarId(), postFeedQueryDTO.getUserId(), null, size));
         } else {
-            // 翻页不走缓存：游标的组合是无穷多的，缓存命中率趋近于零，只会白占内存。
-            // 而且翻页查询本身就是等值索引扫描，没有缓存的必要
-            records = assembleFeedBase(query.getBarId(), query.getUserId(), query.getLastId(), size);
+            records = assembleFeedBase(postFeedQueryDTO.getBarId(), postFeedQueryDTO.getUserId(), postFeedQueryDTO.getLastId(), size);
         }
-
+        // 查询点赞数，评论数和收藏数
         fillSummaryInteraction(records);
-
+        // 返回结果类
         PageVO<PostSummaryVO> result = new PageVO<>();
+        //把结果写入返回类
         result.setRecords(records);
-        // 满一页才给下一页游标。没有多取一条来判断「还有没有下一条」，
-        // 因为那会破坏「缓存与直查返回同一形状」的简洁性——数据恰好是 size 整数倍时
-        // 客户端会多收到一次空数组，这个代价可以接受
-        result.setNextCursor(records.size() < size
-                ? null
-                : records.get(records.size() - 1).getPostId());
+        // 写入游标
+        result.setNextCursor(records.size() < size ? null : records.get(records.size() - 1).getPostId());
         return result;
     }
 
@@ -429,6 +397,26 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Map<Long, PostSummaryVO> latestVisibleByBarIds(List<Long> barIds) {
+        if (barIds == null || barIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Post> posts = postMapper.selectLatestApprovedByBarIds(barIds);
+        if (posts.isEmpty()) {
+            return Map.of();
+        }
+        Set<Long> userIds = posts.stream().map(Post::getUserId).collect(Collectors.toSet());
+        Map<Long, UserBrief> userById = userReadMapper.selectByIds(userIds.stream().toList()).stream()
+                .collect(Collectors.toMap(UserBrief::getId, Function.identity()));
+        Map<Long, PostSummaryVO> result = new HashMap<>();
+        for (Post post : posts) {
+            result.put(post.getBarId(), toSummaryVO(post, null, userById.get(post.getUserId())));
+        }
+        fillSummaryInteraction(new ArrayList<>(result.values()));
+        return result;
+    }
+
+    @Override
     public int warmUpRecentPosts(int limit) {
         if (limit <= 0) {
             return 0;
@@ -440,7 +428,7 @@ public class PostServiceImpl implements PostService {
         if (posts.isEmpty()) {
             return 0;
         }
-        // 与 pagePosts 同样的批量取关联，再加一次分析结论，避免逐帖回源
+        // 与 feedPosts 同样的批量取关联，再加一次分析结论，避免逐帖回源
         List<Long> postIds = posts.stream().map(Post::getId).toList();
         Set<Long> userIds = posts.stream().map(Post::getUserId).collect(Collectors.toSet());
         Set<Long> barIds = posts.stream().map(Post::getBarId).collect(Collectors.toSet());
@@ -452,15 +440,24 @@ public class PostServiceImpl implements PostService {
                 .collect(Collectors.toMap(Bar::getId, Function.identity()));
         Map<Long, PostAnalysis> analysisByPostId = listAnalysisByPostIds(postIds);
 
+        int warmed = 0;
         for (Post post : posts) {
+            String body = fetchPostBody(post);
+            if (body == null) {
+                // 正文没取到：跳过这一条，别把摘要当正文缓存住整个 TTL。
+                // 按需回源时还会再试一次，单条失败也不影响整轮预热。
+                continue;
+            }
             List<PostImage> images = imagesByPostId.getOrDefault(post.getId(), List.of());
             postDetailCache.put(assembleDetail(post,
                     barById.get(post.getBarId()),
                     userById.get(post.getUserId()),
                     images.stream().map(PostImage::getUrl).toList(),
-                    analysisByPostId.get(post.getId())));
+                    analysisByPostId.get(post.getId()),
+                    body));
+            warmed++;
         }
-        return posts.size();
+        return warmed;
     }
 
     /**
@@ -526,22 +523,34 @@ public class PostServiceImpl implements PostService {
 
     private PostDetailVO assembleDetail(Post post, Bar bar, UserBrief author, List<String> imageUrls,
                                        PostAnalysis analysis) {
+        return assembleDetail(post, bar, author, imageUrls, analysis, loadPostBody(post));
+    }
+
+    /** 重载：正文已经知道时（刚写完 / 预热时已取过）直接传进来，省一次 KV 回读 */
+    private PostDetailVO assembleDetail(Post post, Bar bar, UserBrief author, List<String> imageUrls,
+                                       PostAnalysis analysis, String content) {
         PostDetailVO postDetailVO = new PostDetailVO();
-        postDetailVO.setPostId(post.getId());
-        postDetailVO.setBarId(post.getBarId());
-        postDetailVO.setBarName(bar == null ? null : bar.getName());
-        postDetailVO.setUserId(post.getUserId());
-        // 作者可能已被逻辑删除(selectById 自动过滤)，渲染为 null 而不是让请求失败
-     //   vo.setNickName(author == null ? null : author.getNickName());
-      //  vo.setIcon(author == null ? null : author.getIcon());
-        postDetailVO.setTitle(post.getTitle());
-        postDetailVO.setContent(post.getContent());
-        postDetailVO.setImages(imageUrls);
+        fillPostFields(postDetailVO, post, bar, imageUrls, content);
         postDetailVO.setAnalysisStatus(post.getAnalysisStatus());
         fillAnalysis(postDetailVO, analysis);
-        postDetailVO.setCreateTime(post.getCreateTime());
-        postDetailVO.setUpdateTime(post.getUpdateTime());
         return postDetailVO;
+    }
+
+    /**
+     * 填帖子本体字段（不含 AI 结论）。发帖 / 改帖的返回与详情共用这一段。
+     *
+     * @param content 正文。调用方要么刚从手上写进去，要么已从 KV 取过，避免这里再回读一次
+     */
+    private void fillPostFields(PostBaseVO vo, Post post, Bar bar, List<String> imageUrls, String content) {
+        vo.setPostId(post.getId());
+        vo.setBarId(post.getBarId());
+        vo.setBarName(bar == null ? null : bar.getName());
+        vo.setUserId(post.getUserId());
+        vo.setTitle(post.getTitle());
+        vo.setContent(content);
+        vo.setImages(imageUrls);
+        vo.setCreateTime(post.getCreateTime());
+        vo.setUpdateTime(post.getUpdateTime());
     }
 
     /**
@@ -621,7 +630,8 @@ public class PostServiceImpl implements PostService {
         vo.setNickName(author == null ? null : author.getNickName());
         vo.setIcon(author == null ? null : author.getIcon());
         vo.setTitle(post.getTitle());
-        vo.setContentPreview(preview(post.getContent()));
+        // 摘要直接用库里存的那份。别再 preview(content) —— content 不是数据库列，读出来是 null
+        vo.setContentPreview(post.getContentPreview());
         vo.setCoverImage(post.getCoverImage());
         vo.setImageCount(post.getImageCount() == null ? 0 : post.getImageCount());
         vo.setCreateTime(post.getCreateTime());
@@ -642,6 +652,33 @@ public class PostServiceImpl implements PostService {
     /**
      * 正文预览：按码点截断，避免 substring 劈开代理对(emoji)产生乱码
      */
+    /**
+     * 从 Cassandra 取正文，取不到返回 null（不回退摘要）。
+     *
+     * <p>回退链的第一段：优先用库里存的 {@code content_uuid}；为空则用帖子 id 推导
+     * （{@code new UUID(0, postId)}）—— 迁移前的老行 uuid 是空串，但正文其实已经在
+     * Cassandra 里，主键就是这个推导值，这一步把老数据救回来。
+     */
+    private String fetchPostBody(Post post) {
+        if (post == null) {
+            return null;
+        }
+        String stored = post.getContentUuid();
+        String contentUuid = StringUtils.hasText(stored)
+                ? stored
+                : (post.getId() == null ? null : new UUID(0L, post.getId()).toString());
+        return keyValueRpcService.find(contentUuid);
+    }
+
+    /**
+     * 详情页用的正文：Cassandra 取不到就回退到 {@code content_preview}。
+     * KV 抖一下最多少看正文，不让详情页 500 —— 摘要总还是有的。
+     */
+    private String loadPostBody(Post post) {
+        String body = fetchPostBody(post);
+        return StringUtils.hasText(body) ? body : (post == null ? null : post.getContentPreview());
+    }
+
     private String preview(String content) {
         if (content == null) {
             return null;
@@ -660,7 +697,7 @@ public class PostServiceImpl implements PostService {
     /**
      * 互动数据不进帖子详情缓存：赞/评/藏变更频繁，且 liked/favorited 是用户维度。
      */
-    private void fillDetailInteraction(PostDetailVO postDetailVO) {
+    private void fillDetailInteraction(PostBaseVO postDetailVO) {
         Long postId = postDetailVO.getPostId();
         List<Long> ids = List.of(postId);
         Long userId = UserContext.getUserId();
@@ -671,6 +708,7 @@ public class PostServiceImpl implements PostService {
         postDetailVO.setFavorited(userId != null && postEngagementSupport.listFavoritedPostIds(userId, ids).contains(postId));
     }
 
+    //查询评论数，点赞数和收藏数
     private void fillSummaryInteraction(List<PostSummaryVO> rows) {
         if (rows == null || rows.isEmpty()) {
             return;

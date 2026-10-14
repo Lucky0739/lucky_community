@@ -1,58 +1,41 @@
 package com.lucky.community.vo;
 
+import com.lucky.community.ai.vo.EvidenceVO;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 帖子详情
+ * 帖子详情：本体字段 + AI 审核结论。
+ *
+ * <p>只有详情接口会返回它。发帖 / 改帖返回 {@link PostBaseVO} ——
+ * 那两个时刻还没有结论可填。
  */
 @Data
-public class PostDetailVO {
+@EqualsAndHashCode(callSuper = true)
+public class PostDetailVO extends PostBaseVO {
 
-    /** 帖子ID */
-    private Long postId;
+    /** AI 分析状态 */
+    private Integer analysisStatus;
 
-    /** 所属贴吧ID */
-    private Long barId;
+    /** AI 摘要 */
+    private String analysisSummary;
 
-    /** 作者user_id */
-    private Long userId;
+    /** 相似帖子 ID */
+    private List<Long> similarPostIds;
 
-    /** 作者昵称 */
-    private String nickName;
+    private String analysisRiskLevel;
 
-    /** 作者头像 */
-    private String icon;
+    private Double analysisConfidence;
 
-    /** 标题 */
-    private String title;
+    private String analysisReasoning;
 
-    /** 正文 */
-    private String content;
+    private Boolean analysisHasConflict;
 
-    /** 图片URL列表，按 sort_no 升序 */
-    private List<String> images;
+    private String analysisConflictType;
 
-    /** 点赞数 */
-    private Long likeCount;
+    private List<String> analysisCategories;
 
-    /** 评论数（含回复） */
-    private Long commentCount;
-
-    /** 收藏数 */
-    private Long favoriteCount;
-
-    /** 当前用户是否已赞；未登录为 false */
-    private Boolean liked;
-
-    /** 当前用户是否已收藏；未登录为 false */
-    private Boolean favorited;
-
-    /** 创建时间 */
-    private LocalDateTime createTime;
-
-    /** 更新时间 */
-    private LocalDateTime updateTime;
+    private List<EvidenceVO> analysisEvidence;
 }

@@ -28,6 +28,14 @@
             <artifactId>lucky-bloom-filter-framework</artifactId>
             <version>${revision}</version>
         </dependency>
+        <!-- lucky-bloom-filter-framework 的 POM 里把 spring-boot-starter-logging 排除了。
+             Maven 最近优先会让这个节点赢过 spring-boot-starter-web 那条路径，
+             排除因此对整个应用生效 —— Logback 消失，Spring Boot 退化成 JUL。
+             直接声明一次把它补回来（直接依赖不受传递路径上的排除影响）。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -51,6 +59,12 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        <!-- @FeignClient(name = "lucky-kv-service") 是按服务名调用的，需要负载均衡器。
+             之前本服务没有任何 Feign 客户端被真正注入，所以一直没暴露缺这个依赖。 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -78,6 +92,21 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>${minio.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-embedded</artifactId>
+            <version>${debezium.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.luckyCommunity</groupId>
+            <artifactId>lucky-kv-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.luckyCommunity</groupId>
+            <artifactId>lucky-user-service</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
