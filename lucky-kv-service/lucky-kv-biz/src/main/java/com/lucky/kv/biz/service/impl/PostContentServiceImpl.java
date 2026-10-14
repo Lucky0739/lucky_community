@@ -38,6 +38,11 @@ public class PostContentServiceImpl implements PostContentService {
         return new PostContentVO(postContent.getId(),postContent.getContent());
     }
 
+    /**
+     * Cassandra查询帖子内容
+     * @param findPostContentReqDTO
+     * @return
+     */
     @Override
     public FindPostContentVO findNoteContent(FindPostContentDTO findPostContentReqDTO) {
         String postId = findPostContentReqDTO.getPostId();

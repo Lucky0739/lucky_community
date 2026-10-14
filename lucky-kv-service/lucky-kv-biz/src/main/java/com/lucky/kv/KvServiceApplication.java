@@ -10,7 +10,7 @@ import org.springframework.data.cassandra.repository.config.EnableCassandraRepos
 public class KvServiceApplication {
 
     public static void main(String[] args) {
-        LoopbackProxyBypass.install();
+        LoopbackProxyBypass.enable();
         SpringApplication.run(KvServiceApplication.class, args);
     }
 }

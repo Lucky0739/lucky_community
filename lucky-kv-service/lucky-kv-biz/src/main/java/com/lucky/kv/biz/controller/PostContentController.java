@@ -43,7 +43,12 @@ public class PostContentController {
         return Result.success(postContentService.findNoteContent(findPostContentDTO));
     }
 
-    @PostMapping(value = "/note/content/delete")
+    /**
+     * 删除帖子
+     * @param deleteNoteContentReqDTO
+     * @return
+     */
+    @PostMapping(value = "/post/content/delete")
     public Response<?> deleteNoteContent(@Validated @RequestBody DeletePostContentDTO deleteNoteContentReqDTO) {
         return postContentService.deletePostContent(deleteNoteContentReqDTO);
     }
