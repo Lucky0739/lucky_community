@@ -83,6 +83,13 @@
             <version>${minio.version}</version>
             <optional>true</optional>
         </dependency>
+        <!-- LongBloomFilter 用 Redisson 的 RBloomFilter；optional 与本模块其它依赖一致 -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>${redisson.version}</version>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>
