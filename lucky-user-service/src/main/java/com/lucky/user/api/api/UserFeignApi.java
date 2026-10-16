@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 作者昵称和头像。帖子详情调用，不要求登录。
  */
-@FeignClient(name = ApiConstants.SERVICE_NAME)
+@FeignClient(name = ApiConstants.SERVICE_NAME, contextId = "userFeignApi")
 public interface UserFeignApi {
 
     String PREFIX = "/user";
