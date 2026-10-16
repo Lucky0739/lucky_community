@@ -11,14 +11,14 @@ public enum FollowLuaResult {
     /** 写入关注关系且关注数 +1 */
     SUCCESS(0L, null),
 
-    /** 已经关注过该用户 */
-    ALREADY(1L, "已经关注该用户"),
+    /** 已经关注过该贴吧 */
+    ALREADY(1L, "已经关注该贴吧"),
 
-    /** 不能关注自己 */
+    /** 保留返回码，当前关注贴吧不再使用 */
     SELF(2L, "不能关注自己"),
 
-    /** 关注人数已达上限 */
-    LIMIT(3L, "关注人数不能超过2000人");
+    /** 关注贴吧数已达上限 */
+    LIMIT(3L, "关注贴吧不能超过2000个");
 
     private final long code;
     private final String errorMsg;
