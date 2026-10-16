@@ -20,6 +20,10 @@ spring:
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://127.0.0.1:9200}
 
+# 消费 post-service 发来的帖子索引变更事件
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+
 management:
   endpoints:
     web:

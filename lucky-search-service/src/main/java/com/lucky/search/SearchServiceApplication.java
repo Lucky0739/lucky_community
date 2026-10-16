@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SearchServiceApplication {
 
     public static void main(String[] args) {
-        LoopbackProxyBypass.install();
+        LoopbackProxyBypass.enable();
         SpringApplication.run(SearchServiceApplication.class, args);
     }
 }
