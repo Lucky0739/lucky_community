@@ -15,9 +15,9 @@ public class Follow {
      */
     private Long userId;
     /**
-     * 被关注用户id
+     * 被关注贴吧 id
      */
-    private Long followUserId;
+    private Long barId;
     /**
      * 关注时间
      */
