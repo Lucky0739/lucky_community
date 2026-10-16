@@ -47,6 +47,9 @@ public final class ThumbConstant {
     /** 攒批队列上限，满了阻塞（背压），防止内存被撑爆 */
     public static final int PERSIST_BUFFER_SIZE = 10_000;
 
+    /** 批量落库遇数据库死锁时的最大重试次数（含首次执行） */
+    public static final int PERSIST_DEADLOCK_RETRY_MAX = 3;
+
     /** 帖子点赞数刷库：累计多少次 Redis 计数变更后触发一次 */
     public static final int FLUSH_EVENT_THRESHOLD = 500;
 
