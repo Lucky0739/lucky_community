@@ -24,4 +24,10 @@ public interface AdminPostService {
      * 清零重试计数后重投 {@code /govern}，让自动重试也能重新接管。
      */
     void reanalyze(Long operatorId, Long postId);
+
+    /**
+     * 触发搜索索引全量重建（异步）。用于补历史数据或事后对账。
+     * 已有任务在跑时抛业务异常。
+     */
+    void reindex(Long operatorId);
 }

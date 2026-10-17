@@ -45,12 +45,12 @@ public class AdminPostController {
 
     /**
      * 人工审核帖子
-     * @param dto
+     * @param adminReviewPostDTO
      * @return
      */
     @PostMapping("/review")
-    public Result<String> review(@RequestBody @Valid AdminReviewPostDTO dto) {
-        adminPostService.reviewPost(UserContext.getUserId(), dto);
+    public Result<String> review(@RequestBody @Valid AdminReviewPostDTO adminReviewPostDTO) {
+        adminPostService.reviewPost(UserContext.getUserId(), adminReviewPostDTO);
         return Result.success();
     }
 
@@ -62,6 +62,17 @@ public class AdminPostController {
     @PostMapping("/{postId}/reanalyze")
     public Result<String> reanalyze(@PathVariable("postId") Long postId) {
         adminPostService.reanalyze(UserContext.getUserId(), postId);
+        return Result.success();
+    }
+
+    /**
+     * 触发搜索索引全量重建（异步跑，立刻返回）。
+     * 用于把历史帖子补进 ES，或增量同步漏掉时事后对账。
+     * @return
+     */
+    @PostMapping("/reindex")
+    public Result<String> reindex() {
+        adminPostService.reindex(UserContext.getUserId());
         return Result.success();
     }
 

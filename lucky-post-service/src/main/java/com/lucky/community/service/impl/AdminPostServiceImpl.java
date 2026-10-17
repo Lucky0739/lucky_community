@@ -15,6 +15,8 @@ import com.lucky.community.mapper.BarMapper;
 import com.lucky.community.mapper.PostAnalysisMapper;
 import com.lucky.community.mapper.PostImageMapper;
 import com.lucky.community.mapper.PostMapper;
+import com.lucky.community.mq.PostIndexEmitter;
+import com.lucky.community.mq.PostIndexRebuilder;
 import com.lucky.community.service.AdminPostService;
 import com.lucky.community.support.PermissionSupport;
 import com.lucky.community.support.entity.UserBrief;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,6 +51,8 @@ public class AdminPostServiceImpl implements AdminPostService {
     private final AiModerationService aiModerationService;
     private final AiModerationRetryService aiModerationRetryService;
     private final PermissionSupport permissionSupport;
+    private final PostIndexEmitter postIndexEmitter;
+    private final PostIndexRebuilder postIndexRebuilder;
 
     /**
      * 分页查询帖子
@@ -101,6 +106,10 @@ public class AdminPostServiceImpl implements AdminPostService {
             postImageMapper.logicalDeleteByPostId(post.getId());
             runAfterCommit(() -> aiModerationService.deleteVector(post.getId()));
         }
+        // 处置会改变可见性：删帖/封禁 → 不可见（撤索引）。未处置/警告不改变 AI 的判定，
+        // 所以不会让风险帖重新可见 —— 可见性只由 risk_level 是不是「无风险」决定。
+        // emit 内部现算，这里不用分辨是哪种
+        runAfterCommit(() -> postIndexEmitter.emit(post.getId(), null));
         runAfterCommit(() -> postDetailCache.evict(post.getId()));
     }
 
@@ -122,6 +131,7 @@ public class AdminPostServiceImpl implements AdminPostService {
         postImageMapper.logicalDeleteByPostId(postId);
         runAfterCommit(() -> postDetailCache.evict(postId));
         runAfterCommit(() -> aiModerationService.deleteVector(postId));
+        runAfterCommit(() -> postIndexEmitter.emit(postId, null));
     }
 
     /**
@@ -140,6 +150,19 @@ public class AdminPostServiceImpl implements AdminPostService {
         if (!aiModerationRetryService.reanalyze(postId)) {
             // 正文读不到 / 线程池满 / 审核关闭。计数已在内部清零，用户可稍后重试
             throw new BusinessException("重投 AI 审核失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 触发索引全量重建。异步执行，立刻返回。
+     */
+    @Override
+    public void reindex(Long operatorId) {
+        requirePlatformAdmin(operatorId);
+        try {
+            postIndexRebuilder.triggerAsync();
+        } catch (RejectedExecutionException e) {
+            throw new BusinessException("已有索引重建任务在进行中，请稍后再试");
         }
     }
 
