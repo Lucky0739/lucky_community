@@ -9,6 +9,7 @@
                is_top, deleted, create_time, update_time
         FROM tb_comment
         WHERE id = #{id}
+          AND deleted = 0
     </select>
 
     <insert id="batchInsert">
@@ -51,4 +52,108 @@
         SET reply_total = reply_total + #{delta}
         WHERE id = #{id} AND level = 1 AND deleted = 0
     </update>
+
+    <select id="countRootComments" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_comment
+        WHERE post_id = #{postId}
+          AND level = 1
+          AND deleted = 0
+    </select>
+
+    <select id="selectPageList" resultType="com.lucky.comment.entity.Comment">
+        SELECT id, post_id, user_id, content_uuid, is_content_empty, image_url,
+               level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+               is_top, deleted, create_time, update_time
+        FROM tb_comment
+        WHERE post_id = #{postId}
+          AND level = 1
+          AND deleted = 0
+        ORDER BY is_top DESC, create_time ASC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectByIds" resultType="com.lucky.comment.entity.Comment">
+        SELECT id, post_id, user_id, content_uuid, is_content_empty, image_url,
+               level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+               is_top, deleted, create_time, update_time
+        FROM tb_comment
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectTwoLevelCommentByIds" resultType="com.lucky.comment.entity.Comment">
+        SELECT DISTINCT ON (parent_id)
+               id, post_id, user_id, content_uuid, is_content_empty, image_url,
+               level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+               is_top, deleted, create_time, update_time
+        FROM tb_comment
+        WHERE deleted = 0
+          AND level = 2
+          AND parent_id IN
+        <foreach collection="parentIds" item="parentId" open="(" separator="," close=")">
+            #{parentId}
+        </foreach>
+        ORDER BY parent_id, create_time ASC, id ASC
+    </select>
+
+    <select id="countRepliesByRoot" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_comment
+        WHERE parent_id = #{rootCommentId}
+          AND level = 2
+          AND deleted = 0
+    </select>
+
+    <select id="selectReplyPageList" resultType="com.lucky.comment.entity.Comment">
+        SELECT id, post_id, user_id, content_uuid, is_content_empty, image_url,
+               level, reply_total, like_total, parent_id, reply_comment_id, reply_user_id,
+               is_top, deleted, create_time, update_time
+        FROM tb_comment
+        WHERE parent_id = #{rootCommentId}
+          AND level = 2
+          AND deleted = 0
+        ORDER BY create_time ASC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <update id="softDeleteById">
+        UPDATE tb_comment
+        SET deleted = 1, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND user_id = #{userId}
+          AND deleted = 0
+    </update>
+
+    <update id="updateLikeTotal">
+        UPDATE tb_comment
+        SET like_total = #{likeTotal}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{commentId}
+          AND deleted = 0
+    </update>
+
+    <select id="selectRepliesForCascade" resultType="com.lucky.comment.entity.Comment">
+        SELECT id, post_id, parent_id, level, content_uuid, create_time
+        FROM tb_comment
+        WHERE parent_id = #{rootId}
+          AND level = 2
+          AND deleted = 0
+          AND id &gt; #{lastId}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="softDeleteByIds" resultType="long">
+        UPDATE tb_comment
+        SET deleted = 1, update_time = CURRENT_TIMESTAMP
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        RETURNING id
+    </select>
 </mapper>

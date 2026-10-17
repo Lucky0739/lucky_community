@@ -10,13 +10,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableRetry
 @EnableScheduling
-@EnableFeignClients(basePackages = {"com.lucky.comment", "com.lucky.kv.api"})
+@EnableFeignClients(basePackages = {"com.lucky.comment", "com.lucky.kv.api", "com.lucky.user.api"})
 @MapperScan("com.lucky.comment.mapper")
 @SpringBootApplication
 public class CommentServiceApplication {
 
     public static void main(String[] args) {
-        LoopbackProxyBypass.install();
+        LoopbackProxyBypass.enable();
         SpringApplication.run(CommentServiceApplication.class, args);
     }
 }

@@ -14,7 +14,7 @@ public class FindCommentReplyPageListDTO {
     @NotNull(message = "根评论ID不能为空")
     private Long rootCommentId;
 
-    @NotNull(message = "页码不能为空")
+    /** 页码，从 1 开始。为空按 1 处理，见 CommentServiceImpl#findReplyPageList */
     @Min(value = 1, message = "页码不能小于1")
     private Integer pageNo = 1;
 }

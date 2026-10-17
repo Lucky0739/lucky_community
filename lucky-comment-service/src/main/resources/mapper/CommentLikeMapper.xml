@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.comment.mapper.CommentLikeMapper">
+
+    <select id="batchInsertIgnore" resultType="com.lucky.comment.entity.CommentLike">
+        INSERT INTO tb_comment_like (id, user_id, comment_id, create_time)
+        VALUES
+        <foreach collection="likes" item="like" separator=",">
+            (#{like.id}, #{like.userId}, #{like.commentId}, #{like.createTime})
+        </foreach>
+        ON CONFLICT (user_id, comment_id) DO NOTHING
+        RETURNING id, user_id AS userId, comment_id AS commentId, create_time AS createTime
+    </select>
+
+    <delete id="deleteByCommentIds">
+        DELETE FROM tb_comment_like
+        WHERE comment_id IN
+        <foreach collection="commentIds" item="commentId" open="(" separator="," close=")">
+            #{commentId}
+        </foreach>
+    </delete>
+
+    <select id="batchDeleteByUserAndComment" resultType="com.lucky.comment.entity.CommentLike">
+        DELETE FROM tb_comment_like
+        WHERE (user_id, comment_id) IN
+        <foreach collection="likes" item="like" open="(" separator="," close=")">
+            (#{like.userId}, #{like.commentId})
+        </foreach>
+        RETURNING id, user_id AS userId, comment_id AS commentId, create_time AS createTime
+    </select>
+</mapper>

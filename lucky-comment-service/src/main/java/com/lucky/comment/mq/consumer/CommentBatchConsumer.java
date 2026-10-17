@@ -1,10 +1,10 @@
-package com.lucky.comment.mq;
+package com.lucky.comment.mq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
 import com.lucky.comment.constant.CommentMqConstant;
-import com.lucky.comment.service.CommentHeatService;
-import com.lucky.comment.service.CommentPersistService;
+import com.lucky.comment.mq.message.PublishCommentMessage;
+import com.lucky.comment.service.CommentService;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +32,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CommentBatchConsumer {
 
-    private final CommentPersistService commentPersistService;
-    private final CommentHeatService commentHeatService;
+    private final CommentService commentService;
     private final ObjectMapper objectMapper;
 
     @Value("${rocketmq.name-server}")
@@ -70,8 +69,8 @@ public class CommentBatchConsumer {
                     }
                 }
                 if (!messages.isEmpty()) {
-                    List<PublishCommentMessage> fresh = commentPersistService.saveBatch(messages);
-                    commentHeatService.add(fresh);
+                    List<PublishCommentMessage> fresh = commentService.saveBatch(messages);
+                    commentService.addHeat(fresh);
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             } catch (Exception e) {

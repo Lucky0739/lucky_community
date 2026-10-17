@@ -1,4 +1,4 @@
-package com.lucky.comment.mq;
+package com.lucky.comment.mq.message;
 
 import lombok.Data;
 
