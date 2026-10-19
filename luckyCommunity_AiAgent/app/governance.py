@@ -33,11 +33,13 @@ class GovernanceState(TypedDict, total=False):
     conflicts: list[Conflict]
     retry_count: int
     summary: str
+    vector_written: bool
     degraded_reasons: Annotated[list[str], operator.add]
     model_versions: Annotated[list[str], operator.add]
     token_cost: Annotated[int, operator.add]
 
 
+# 对帖子id和贴吧id进行校验，content非空判断
 def _dispatch(state: GovernanceState) -> dict:
     event = state["event"]
     if event.post_id <= 0 or event.bar_id <= 0 or not event.content.strip():
@@ -185,9 +187,11 @@ def _report(state: GovernanceState) -> dict:
     try:
         vector_store.upsert_post(event.post_id, event.bar_id, event.title, event.content)
         reasons: list[str] = []
+        vector_written = True
     except Exception as exc:  # noqa: BLE001
         reasons = [f"向量写入降级：{exc}"]
-    return {"summary": summary, "degraded_reasons": reasons}
+        vector_written = False
+    return {"summary": summary, "degraded_reasons": reasons, "vector_written": vector_written}
 
 
 def _build_graph():
@@ -250,6 +254,7 @@ def govern(request: ModerateRequest) -> GovernanceResponse:
         has_conflict=bool(conflicts),
         conflict_type=primary.type if primary else None,
         retry_count=state.get("retry_count", 0),
+        vector_written=state.get("vector_written", False),
         degraded=bool(reasons),
         degraded_reasons=reasons,
         degrade_reason="；".join(reasons) or None,
