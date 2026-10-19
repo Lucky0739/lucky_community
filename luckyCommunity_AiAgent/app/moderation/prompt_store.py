@@ -8,6 +8,7 @@ import logging
 import time
 from dataclasses import dataclass
 
+import psycopg
 from redis import Redis
 from redis.exceptions import RedisError
 
@@ -36,7 +37,6 @@ class PromptValue:
 
 def _checksum(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
-
 
 def _redis_client() -> Redis | None:
     global _redis, _redis_failed_at
