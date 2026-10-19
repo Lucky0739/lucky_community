@@ -2,7 +2,6 @@
 
 表在 ``community`` schema，保存向量及检索所需的最小文本副本。
 """
-
 from __future__ import annotations
 
 import hashlib
@@ -23,28 +22,8 @@ def _chunks(title: str, content: str, size: int = 500) -> list[str]:
     return values or [""]
 
 
-def embed(text: str) -> list[float]:
-    """优先调用 OpenAI 兼容 Embedding；未配置时使用稳定的本地字符向量。"""
-    if settings.embedding_base_url:
-        headers = (
-            {"Authorization": f"Bearer {settings.embedding_api_key}"}
-            if settings.embedding_api_key
-            else {}
-        )
-        response = httpx.post(
-            f"{settings.embedding_base_url.rstrip('/')}/embeddings",
-            headers=headers,
-            json={"model": settings.embedding_model, "input": text},
-            timeout=1.5,
-        )
-        response.raise_for_status()
-        vector = response.json()["data"][0]["embedding"]
-        if len(vector) != settings.embedding_dimensions:
-            raise ValueError(
-                f"Embedding 维度为 {len(vector)}，配置要求 {settings.embedding_dimensions}"
-            )
-        return [float(value) for value in vector]
-
+def _local_embed(text: str) -> list[float]:
+    """未配置远程 Embedding 时的稳定字符向量，只用于本地降级。"""
     dimensions = settings.embedding_dimensions
     vector = [0.0] * dimensions
     normalized = " ".join(text.lower().split())
@@ -58,6 +37,47 @@ def embed(text: str) -> list[float]:
         vector[index] += -1.0 if value & 1 else 1.0
     norm = math.sqrt(sum(item * item for item in vector)) or 1.0
     return [item / norm for item in vector]
+
+
+def embed_many(texts: list[str]) -> list[list[float]]:
+    """按输入顺序返回向量。配置了地址时走 OpenAI 兼容 Embedding。"""
+    if not texts:
+        return []
+    if not settings.embedding_base_url:
+        return [_local_embed(text) for text in texts]
+    headers = (
+        {"Authorization": f"Bearer {settings.embedding_api_key}"}
+        if settings.embedding_api_key
+        else {}
+    )
+    response = httpx.post(
+        f"{settings.embedding_base_url.rstrip('/')}/embeddings",
+        headers=headers,
+        json={
+            "model": settings.embedding_model,
+            "input": texts,
+            "dimensions": settings.embedding_dimensions,
+        },
+        timeout=15,
+    )
+    response.raise_for_status()
+    rows = response.json()["data"]
+    ordered = sorted(rows, key=lambda item: item.get("index", 0))
+    if len(ordered) != len(texts):
+        raise ValueError(f"Embedding 返回 {len(ordered)} 条，请求了 {len(texts)} 条")
+    vectors: list[list[float]] = []
+    for item in ordered:
+        vector = [float(value) for value in item["embedding"]]
+        if len(vector) != settings.embedding_dimensions:
+            raise ValueError(
+                f"Embedding 维度为 {len(vector)}，配置要求 {settings.embedding_dimensions}"
+            )
+        vectors.append(vector)
+    return vectors
+
+
+def embed(text: str) -> list[float]:
+    return embed_many([text])[0]
 
 
 def _literal(vector: list[float]) -> str:
@@ -89,20 +109,41 @@ def ensure_schema() -> None:
     """
     with psycopg.connect(settings.database_url) as conn:
         conn.execute(ddl)
+        current = conn.execute(
+            """
+            SELECT format_type(a.atttypid, a.atttypmod)
+            FROM pg_attribute a
+            JOIN pg_class c ON c.oid = a.attrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'community'
+              AND c.relname = 'post_vectors'
+              AND a.attname = 'embedding'
+              AND NOT a.attisdropped
+            """
+        ).fetchone()
+        expected = f"vector({dimensions})"
+        if current and expected not in str(current[0]):
+            # 旧维度的向量和新模型不能混用，清空后按配置重建列。
+            conn.execute("DELETE FROM community.post_vectors")
+            conn.execute("ALTER TABLE community.post_vectors DROP COLUMN embedding")
+            conn.execute(
+                f"ALTER TABLE community.post_vectors ADD COLUMN embedding vector({dimensions}) NOT NULL"
+            )
 
 
 def upsert_post(post_id: int, bar_id: int, title: str, content: str) -> None:
     chunks = _chunks(title, content)
+    vectors = embed_many(chunks)
     with psycopg.connect(settings.database_url) as conn:
         conn.execute("DELETE FROM community.post_vectors WHERE post_id = %s", (post_id,))
-        for index, chunk in enumerate(chunks):
+        for index, (chunk, vector) in enumerate(zip(chunks, vectors)):
             conn.execute(
                 """
                 INSERT INTO community.post_vectors
                     (post_id, bar_id, chunk_index, title, content, embedding)
                 VALUES (%s, %s, %s, %s, %s, %s::vector)
                 """,
-                (post_id, bar_id, index, title, chunk, _literal(embed(chunk))),
+                (post_id, bar_id, index, title, chunk, _literal(vector)),
             )
 
 
@@ -114,7 +155,12 @@ def delete_post(post_id: int) -> None:
 def update_action(post_id: int, action: str) -> None:
     with psycopg.connect(settings.database_url) as conn:
         conn.execute(
-            "UPDATE community.post_vectors SET historical_action = %s WHERE post_id = %s",
+            """
+            UPDATE community.post_vectors
+            SET historical_action = %s,
+                updated_at = now()
+            WHERE post_id = %s
+            """,
             (action, post_id),
         )
 
