@@ -44,6 +44,11 @@ public class Result<T> {
         return result;
     }
 
+    /** 分页 total 为 long 时的便捷重载，避免部分 IDE 对装箱推断异常 */
+    public static <T> Result<T> success(T data, long total) {
+        return success(data, Long.valueOf(total));
+    }
+
     public static <T> Result<T> fail() {
         Result<T> result = new Result<T>();
         result.setSuccess(false);

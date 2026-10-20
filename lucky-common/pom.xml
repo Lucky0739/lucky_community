@@ -14,6 +14,19 @@
     <description>公共</description>
 
     <dependencies>
+        <!-- 本模块大量 @Slf4j；显式声明便于 IDEA 注解处理与编译 lucky-common -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- RocketMqNameServer；optional，仅使用 MQ 的模块会传递引入 rocketmq-client -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
@@ -80,7 +93,6 @@
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
-            <version>${minio.version}</version>
             <optional>true</optional>
         </dependency>
         <!-- LongBloomFilter 用 Redisson 的 RBloomFilter；optional 与本模块其它依赖一致 -->

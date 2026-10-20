@@ -37,14 +37,28 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         boolean required = handlerMethod.hasMethodAnnotation(AuthRequired.class)
                 || handlerMethod.getBeanType().isAnnotationPresent(AuthRequired.class);
+        String uri = request.getMethod() + " " + request.getRequestURI();
         if (!required) {
+            resolveUserIdOptional(request, uri);
             return true;
         }
 
-        // 日志统一带上请求路径，便于排查是哪个接口被拒
-        String uri = request.getMethod() + " " + request.getRequestURI();
+        Long userId = resolveUserIdRequired(request, uri);
+        UserContext.setUserId(userId);
+        return true;
+    }
 
-        // 1. 取 access token
+    /** 公开接口：有合法 token 则写入 UserContext，失败静默当未登录 */
+    private void resolveUserIdOptional(HttpServletRequest request, String uri) {
+        try {
+            Long userId = resolveUserIdRequired(request, uri);
+            UserContext.setUserId(userId);
+        } catch (UnauthorizedException ignored) {
+            // 首页等公开读接口：token 无效时不拦请求
+        }
+    }
+
+    private Long resolveUserIdRequired(HttpServletRequest request, String uri) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header == null || !header.startsWith(BEARER_PREFIX)) {
             log.error("鉴权失败：未携带 access token，uri={}, ip={}", uri, request.getRemoteAddr());
@@ -52,30 +66,25 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         String accessToken = header.substring(BEARER_PREFIX.length());
 
-        // 2. 验签 + 类型 + 时效
         JwtUtil.Payload payload = jwtUtil.parse(accessToken, JwtUtil.TYPE_ACCESS);
         if (payload == null) {
             log.error("鉴权失败：token 验签/类型/时效校验不通过，uri={}, ip={}", uri, request.getRemoteAddr());
             throw new UnauthorizedException("登录已过期，请重新登录");
         }
 
-        // 3. 白名单校验（登出/踢下线后，未过期的 access 也立即失效）
         if (!tokenRedisService.isAccessWhitelisted(payload.userId(), payload.jti())) {
             log.warn("鉴权失败：token 不在白名单(已登出或被踢下线)，uri={}, userId={}, jti={}",
                     uri, payload.userId(), payload.jti());
             throw new UnauthorizedException("登录状态已失效，请重新登录");
         }
 
-        // 4. 撤销校验：用户被删除/封禁后，任何仍在外面的 token 一律拒绝
         if (tokenRedisService.isUserRevoked(payload.userId())) {
             log.warn("鉴权失败：用户已被撤销(删除/封禁)，uri={}, userId={}, jti={}",
                     uri, payload.userId(), payload.jti());
             throw new UnauthorizedException("登录状态已失效，请重新登录");
         }
 
-        // 5. 写入当前登录用户，供业务层使用
-        UserContext.setUserId(payload.userId());
-        return true;
+        return payload.userId();
     }
 
     @Override
