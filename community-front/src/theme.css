@@ -1,0 +1,101 @@
+/* 浅色底配深色字。面板保持浅色，按钮用实色，避免和背景混在一起。 */
+
+body .tech-app .page.page {
+  background: transparent;
+  color: #1a2744;
+}
+
+body .tech-app .page.page,
+body .tech-app .page.page * {
+  color: #1a2744;
+}
+
+body .tech-app .page.page .topbar,
+body .tech-app .page.page .top,
+body .tech-app .page.page .sidebar,
+body .tech-app .page.page .dialog,
+body .tech-app .page.page .sheet,
+body .tech-app .page.page .card,
+body .tech-app .page.page .mine-panel,
+body .tech-app .page.page .follow-bars,
+body .tech-app .page.page .box,
+body .tech-app .page.page table {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(47, 125, 220, 0.18);
+  box-shadow: 0 8px 24px rgba(47, 125, 220, 0.08);
+}
+
+body .tech-app .page.page .feed-card,
+body .tech-app .page.page .post,
+body .tech-app .page.page .hero {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(47, 125, 220, 0.16);
+  box-shadow: 0 8px 20px rgba(47, 125, 220, 0.08);
+}
+
+body .tech-app .page.page .primary,
+body .tech-app .page.page .primary *,
+body .tech-app .page.page .send,
+body .tech-app .page.page .send *,
+body .tech-app .page.page .submit,
+body .tech-app .page.page .submit *,
+body .tech-app .page.page .save,
+body .tech-app .page.page .save * {
+  color: #ffffff;
+  background: #2f7bff;
+}
+
+body .tech-app .page.page .ghost,
+body .tech-app .page.page .ghost *,
+body .tech-app .page.page .feed-follow-btn,
+body .tech-app .page.page .edit,
+body .tech-app .page.page .follow {
+  color: #1d5fd0;
+  background: #e7f1ff;
+  border: 1px solid #b9d4ff;
+}
+
+body .tech-app .page.page .danger,
+body .tech-app .page.page .danger * {
+  color: #c24141;
+  background: #fff1f1;
+}
+
+body .tech-app .page.page input,
+body .tech-app .page.page textarea,
+body .tech-app .page.page select,
+body .tech-app .page.page .search {
+  background: #ffffff;
+  color: #1a2744;
+  border-color: #c5d7ef;
+}
+
+body .tech-app .page.page input::placeholder,
+body .tech-app .page.page textarea::placeholder,
+body .tech-app .page.page .banner,
+body .tech-app .page.page .meta,
+body .tech-app .page.page .stats,
+body .tech-app .page.page .id,
+body .tech-app .page.page .desc,
+body .tech-app .page.page .preview,
+body .tech-app .page.page .sub,
+body .tech-app .page.page .feed-bar-stats,
+body .tech-app .page.page .feed-card-foot,
+body .tech-app .page.page footer {
+  color: #5d7190;
+}
+
+body .tech-app .page.page .error,
+body .tech-app .page.page .banner.error {
+  color: #d14343;
+}
+
+body .tech-app .page.page strong {
+  color: #1d5fd0;
+}
+
+body .tech-app .page.page th,
+body .tech-app .page.page td {
+  background: transparent;
+  border-color: #e4edf8;
+}
