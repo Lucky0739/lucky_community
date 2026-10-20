@@ -3,6 +3,7 @@ package com.lucky.kv.biz.controller;
 import com.lucky.common.Response;
 import com.lucky.common.Result;
 import com.lucky.kv.api.dto.BatchAddCommentContentDTO;
+import com.lucky.kv.api.dto.DeleteCommentContentDTO;
 import com.lucky.kv.api.dto.FindCommentContentsDTO;
 import com.lucky.kv.api.vo.CommentContentItemVO;
 import com.lucky.kv.biz.service.CommentContentService;
@@ -37,5 +38,13 @@ public class CommentContentController {
     public Result<List<CommentContentItemVO>> findCommentContents(
             @Validated @RequestBody FindCommentContentsDTO findCommentContentsDTO) {
         return Result.success(commentContentService.findContents(findCommentContentsDTO.getComments()));
+    }
+
+    /**
+     * 删除评论正文
+     */
+    @PostMapping("/comment/content/delete")
+    public Response<?> deleteCommentContent(@Validated @RequestBody DeleteCommentContentDTO deleteCommentContentDTO) {
+        return commentContentService.deleteCommentContent(deleteCommentContentDTO);
     }
 }

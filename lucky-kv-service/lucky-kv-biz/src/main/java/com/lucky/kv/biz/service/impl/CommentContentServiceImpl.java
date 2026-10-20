@@ -3,6 +3,7 @@ package com.lucky.kv.biz.service.impl;
 import com.lucky.common.Response;
 import com.lucky.kv.api.dto.BatchAddCommentContentDTO;
 import com.lucky.kv.api.dto.CommentContentDTO;
+import com.lucky.kv.api.dto.DeleteCommentContentDTO;
 import com.lucky.kv.api.dto.FindCommentContentDTO;
 import com.lucky.kv.api.vo.CommentContentItemVO;
 import com.lucky.kv.biz.entity.CommentContent;
@@ -88,5 +89,16 @@ public class CommentContentServiceImpl implements CommentContentService {
             }
         }
         return result;
+    }
+
+    @Override
+    public Response<?> deleteCommentContent(DeleteCommentContentDTO deleteCommentContentDTO) {
+        CommentContentPrimaryKey key = CommentContentPrimaryKey.builder()
+                .noteId(deleteCommentContentDTO.getPostId())
+                .yearMonth(deleteCommentContentDTO.getYearMonth())
+                .contentId(UUID.fromString(deleteCommentContentDTO.getContentId()))
+                .build();
+        commentContentRepository.deleteById(key);
+        return Response.success();
     }
 }

@@ -5,6 +5,7 @@ import com.lucky.common.Result;
 import com.lucky.kv.api.constant.ApiConstants;
 import com.lucky.kv.api.dto.BatchAddCommentContentDTO;
 import com.lucky.kv.api.dto.CreatePostContentRequest;
+import com.lucky.kv.api.dto.DeleteCommentContentDTO;
 import com.lucky.kv.api.dto.DeletePostContentDTO;
 import com.lucky.kv.api.dto.FindCommentContentsDTO;
 import com.lucky.kv.api.dto.FindPostContentDTO;
@@ -55,4 +56,10 @@ public interface KeyValueFeignApi {
      */
     @PostMapping(PREFIX + "/comment/content/find")
     Result<List<CommentContentItemVO>> findCommentContents(@RequestBody @Valid FindCommentContentsDTO findCommentContentsDTO);
+
+    /**
+     * 删除评论正文（Cassandra）
+     */
+    @PostMapping(PREFIX + "/comment/content/delete")
+    Response<Void> deleteCommentContent(@RequestBody @Valid DeleteCommentContentDTO deleteCommentContentDTO);
 }
