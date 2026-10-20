@@ -1,6 +1,7 @@
 package com.lucky.interaction.mq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucky.common.mq.RocketMqNameServer;
 import com.lucky.interaction.cache.FavoriteCache;
 import com.lucky.interaction.constant.FavoriteConstant;
 import com.lucky.interaction.entity.Favorite;
@@ -51,7 +52,7 @@ public class FavoritePersistConsumer {
     @PostConstruct
     public void start() throws MQClientException {
         consumer = new DefaultLitePullConsumer(FavoriteConstant.MQ_CONSUMER_GROUP);
-        consumer.setNamesrvAddr(namesrvAddr);
+        RocketMqNameServer.apply(consumer, namesrvAddr);
         consumer.setAutoCommit(false);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setMessageModel(MessageModel.CLUSTERING);

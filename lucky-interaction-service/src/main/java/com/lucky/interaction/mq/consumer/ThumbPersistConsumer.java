@@ -1,6 +1,7 @@
 package com.lucky.interaction.mq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucky.common.mq.RocketMqNameServer;
 import com.lucky.interaction.cache.ThumbCache;
 import com.lucky.interaction.constant.ThumbConstant;
 import com.lucky.interaction.entity.Thumb;
@@ -71,7 +72,7 @@ public class ThumbPersistConsumer {
     @PostConstruct
     public void start() throws MQClientException {
         consumer = new DefaultLitePullConsumer(ThumbConstant.MQ_CONSUMER_GROUP);
-        consumer.setNamesrvAddr(namesrvAddr);
+        RocketMqNameServer.apply(consumer, namesrvAddr);
         consumer.setAutoCommit(false);                                  // 处理成功才手动提交
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setMessageModel(MessageModel.CLUSTERING);
