@@ -1,10 +1,10 @@
 package com.lucky.kv.api.constant;
 
-public interface ApiConstants {
+/** Feign / 服务发现用常量。 */
+public final class ApiConstants {
 
-    /**
-     * 服务名称
-     */
-    String SERVICE_NAME = "lucky-kv-service";
+    public static final String SERVICE_NAME = "lucky-kv-service";
+
+    private ApiConstants() {
+    }
 }
-

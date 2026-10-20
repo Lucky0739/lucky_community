@@ -22,44 +22,21 @@ import java.util.List;
 @FeignClient(name = ApiConstants.SERVICE_NAME, contextId = "keyValueFeignApi")
 public interface KeyValueFeignApi {
 
-    /**
-     * 服务内路径前缀
-     */
-    String PREFIX = "/kv";
-
-    /**
-     * 创建帖子内容
-     */
-    @PostMapping(PREFIX + "/post/content/create")
+    @PostMapping("/kv/post/content/create")
     Result<PostContentVO> create(@RequestBody @Valid CreatePostContentRequest createPostContentRequest);
 
-    /**
-     * 查询帖子内容
-     */
-    @PostMapping(PREFIX + "/post/content/find")
+    @PostMapping("/kv/post/content/find")
     Result<FindPostContentVO> find(@RequestBody @Valid FindPostContentDTO findPostContentDTO);
 
-    /**
-     * 删除帖子内容
-     */
-    @PostMapping(PREFIX + "/note/content/delete")
+    @PostMapping("/kv/note/content/delete")
     Response<Void> deleteNoteContent(@RequestBody @Valid DeletePostContentDTO deleteNoteContentReqDTO);
 
-    /**
-     * 批量存储评论正文
-     */
-    @PostMapping(PREFIX + "/comment/content/batchAdd")
+    @PostMapping("/kv/comment/content/batchAdd")
     Response<Void> batchAddCommentContent(@RequestBody @Valid BatchAddCommentContentDTO batchAddCommentContentDTO);
 
-    /**
-     * 按帖子、年月和正文 ID 读取评论正文
-     */
-    @PostMapping(PREFIX + "/comment/content/find")
+    @PostMapping("/kv/comment/content/find")
     Result<List<CommentContentItemVO>> findCommentContents(@RequestBody @Valid FindCommentContentsDTO findCommentContentsDTO);
 
-    /**
-     * 删除评论正文（Cassandra）
-     */
-    @PostMapping(PREFIX + "/comment/content/delete")
+    @PostMapping("/kv/comment/content/delete")
     Response<Void> deleteCommentContent(@RequestBody @Valid DeleteCommentContentDTO deleteCommentContentDTO);
 }
