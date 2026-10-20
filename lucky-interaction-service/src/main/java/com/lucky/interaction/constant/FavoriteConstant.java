@@ -14,6 +14,9 @@ public final class FavoriteConstant {
     public static final long DATA_TTL_SECONDS = BLOOM_TTL_SECONDS;
     public static final long COUNT_TTL_SECONDS = 30L * 60;
 
+    /** 计数刷库锁 TTL：只需覆盖一次「读 Redis + 单行 upsert」 */
+    public static final long COUNT_FLUSH_LOCK_TTL_SECONDS = 5L;
+
     public static final String MQ_TOPIC = "favorite-topic";
     public static final String MQ_TAG = "FAVORITE";
     public static final String MQ_DESTINATION = MQ_TOPIC + ":" + MQ_TAG;
@@ -25,6 +28,9 @@ public final class FavoriteConstant {
     public static final int PERSIST_BATCH_SIZE = 500;
     public static final int PERSIST_LINGER_SECONDS = 5;
     public static final int PERSIST_BUFFER_SIZE = 10_000;
+
+    /** 批量落库遇数据库死锁时的最大重试次数（含首次执行） */
+    public static final int PERSIST_DEADLOCK_RETRY_MAX = 3;
 
     public static final int FLUSH_EVENT_THRESHOLD = 500;
     public static final int MQ_DELAY_LEVEL_10S = 3;

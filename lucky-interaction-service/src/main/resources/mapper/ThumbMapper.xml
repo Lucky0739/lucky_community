@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.ThumbMapper">
+
+    <!-- 改帖会把 analysis_status 重置为 0，旧结论行可能还在；必须两个条件一起看 -->
+    <sql id="ApprovedPost">
+        EXISTS (
+            SELECT 1 FROM tb_post_analysis a
+            WHERE a.post_id = p.id
+              AND a.risk_level = '无风险'
+        )
+          AND p.analysis_status = 2
+    </sql>
+
+    <select id="countByPostId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_thumb
+        WHERE post_id = #{postId}
+    </select>
+
+    <select id="selectPostIdsByUserId" resultType="long">
+        SELECT post_id
+        FROM tb_thumb
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM tb_thumb
+            WHERE user_id = #{userId}
+              AND post_id = #{postId}
+        )
+    </select>
+
+    <select id="batchInsertIgnore" resultType="com.lucky.interaction.entity.Thumb">
+        INSERT INTO tb_thumb (id, user_id, post_id, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.userId}, #{item.postId}, #{item.createTime})
+        </foreach>
+        ON CONFLICT (user_id, post_id) DO NOTHING
+        RETURNING id, user_id AS userId, post_id AS postId, create_time AS createTime
+    </select>
+
+    <select id="batchDeleteByUserAndPost" resultType="com.lucky.interaction.entity.Thumb">
+        DELETE FROM tb_thumb
+        WHERE (user_id, post_id) IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            (#{item.userId}, #{item.postId})
+        </foreach>
+        RETURNING id, user_id AS userId, post_id AS postId, create_time AS createTime
+    </select>
+
+    <select id="countVisibleByUserId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_thumb t
+        INNER JOIN tb_post p ON p.id = t.post_id AND p.deleted = 0
+        WHERE t.user_id = #{userId}
+          AND <include refid="ApprovedPost"/>
+    </select>
+
+    <select id="selectVisiblePageByUserId" resultType="com.lucky.interaction.entity.UserPostInteraction">
+        SELECT t.post_id AS postId, t.create_time AS interactionTime
+        FROM tb_thumb t
+        INNER JOIN tb_post p ON p.id = t.post_id AND p.deleted = 0
+        WHERE t.user_id = #{userId}
+          AND <include refid="ApprovedPost"/>
+        ORDER BY t.create_time DESC, t.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="listLikedPostIds" resultType="long">
+        SELECT post_id
+        FROM tb_thumb
+        WHERE user_id = #{userId}
+          AND post_id IN
+        <foreach collection="postIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </select>
+</mapper>

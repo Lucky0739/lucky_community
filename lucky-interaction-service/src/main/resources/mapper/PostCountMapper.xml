@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.PostCountMapper">
+
+    <insert id="upsertLikeCount">
+        INSERT INTO tb_post_count (post_id, like_count, favorite_count, comment_count)
+        VALUES (#{postId}, #{likeCount}, 0, 0)
+        ON CONFLICT (post_id) DO UPDATE
+            SET like_count = EXCLUDED.like_count,
+                update_time = CURRENT_TIMESTAMP
+    </insert>
+
+    <insert id="upsertFavoriteCount">
+        INSERT INTO tb_post_count (post_id, like_count, favorite_count, comment_count)
+        VALUES (#{postId}, 0, #{favoriteCount}, 0)
+        ON CONFLICT (post_id) DO UPDATE
+            SET favorite_count = EXCLUDED.favorite_count,
+                update_time = CURRENT_TIMESTAMP
+    </insert>
+
+    <select id="selectPostIdsAfter" resultType="long">
+        SELECT id
+        FROM tb_post
+        WHERE id <![CDATA[>]]> #{afterId}
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="reconcilePostRange" resultType="com.lucky.interaction.support.entity.PostCountSnapshot">
+        WITH batch AS (
+            SELECT id AS post_id
+            FROM tb_post
+            WHERE id <![CDATA[>]]> #{afterId}
+              AND id <![CDATA[<=]]> #{untilId}
+        ),
+        upserted AS (
+            INSERT INTO tb_post_count (post_id, like_count, favorite_count, comment_count)
+            SELECT b.post_id,
+                   COALESCE(lk.cnt, 0),
+                   COALESCE(fv.cnt, 0),
+                   COALESCE(cm.cnt, 0)
+            FROM batch b
+            LEFT JOIN (
+                SELECT post_id, COUNT(*)::bigint AS cnt
+                FROM tb_thumb
+                WHERE post_id <![CDATA[>]]> #{afterId}
+                  AND post_id <![CDATA[<=]]> #{untilId}
+                GROUP BY post_id
+            ) lk ON lk.post_id = b.post_id
+            LEFT JOIN (
+                SELECT post_id, COUNT(*)::bigint AS cnt
+                FROM tb_favorite
+                WHERE post_id <![CDATA[>]]> #{afterId}
+                  AND post_id <![CDATA[<=]]> #{untilId}
+                GROUP BY post_id
+            ) fv ON fv.post_id = b.post_id
+            LEFT JOIN (
+                SELECT post_id, COUNT(*)::bigint AS cnt
+                FROM tb_comment
+                WHERE deleted = 0
+                  AND post_id <![CDATA[>]]> #{afterId}
+                  AND post_id <![CDATA[<=]]> #{untilId}
+                GROUP BY post_id
+            ) cm ON cm.post_id = b.post_id
+            ON CONFLICT (post_id) DO UPDATE
+                SET like_count = EXCLUDED.like_count,
+                    favorite_count = EXCLUDED.favorite_count,
+                    comment_count = EXCLUDED.comment_count,
+                    update_time = CURRENT_TIMESTAMP
+                WHERE tb_post_count.like_count IS DISTINCT FROM EXCLUDED.like_count
+                   OR tb_post_count.favorite_count IS DISTINCT FROM EXCLUDED.favorite_count
+                   OR tb_post_count.comment_count IS DISTINCT FROM EXCLUDED.comment_count
+            RETURNING post_id, like_count, favorite_count, comment_count
+        )
+        SELECT post_id AS postId,
+               like_count AS likeCount,
+               favorite_count AS favoriteCount,
+               comment_count AS commentCount
+        FROM upserted
+    </select>
+</mapper>

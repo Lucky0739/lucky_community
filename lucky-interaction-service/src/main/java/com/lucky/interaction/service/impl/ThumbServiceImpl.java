@@ -9,8 +9,12 @@ import com.lucky.interaction.enums.ThumbLuaResult;
 import com.lucky.interaction.enums.ThumbUnlikeLuaResult;
 import com.lucky.interaction.mapper.ThumbMapper;
 import com.lucky.interaction.mq.message.ThumbMessage;
+import com.lucky.common.vo.PageResult;
+import com.lucky.interaction.dto.UserPostListQueryDTO;
 import com.lucky.interaction.service.LikeCountFlushService;
 import com.lucky.interaction.service.ThumbService;
+import com.lucky.interaction.service.UserInteractionPostQueryService;
+import com.lucky.interaction.vo.UserPostSummaryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -32,6 +36,7 @@ public class ThumbServiceImpl implements ThumbService {
     private final RocketMQTemplate rocketMQTemplate;
     private final Clock clock;
     private final LikeCountFlushService likeCountFlushService;
+    private final UserInteractionPostQueryService userInteractionPostQueryService;
 
     /**
      * 点赞功能业务逻辑
@@ -204,6 +209,11 @@ public class ThumbServiceImpl implements ThumbService {
             throw new IllegalStateException("点赞消息发送状态异常：" +
                     (sendResult == null ? "null" : sendResult.getSendStatus()));
         }
+    }
+
+    @Override
+    public PageResult<UserPostSummaryVO> pageLikedPosts(Long viewerId, UserPostListQueryDTO query) {
+        return userInteractionPostQueryService.pageLikedPosts(viewerId, query);
     }
 
     private ThumbLuaResult executeLike(Long userId, Long postId) {

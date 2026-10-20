@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.BarCountMapper">
+
+    <insert id="insertZero">
+        INSERT INTO tb_bar_count (bar_id, fan_count)
+        VALUES (#{barId}, 0)
+        ON CONFLICT (bar_id) DO NOTHING
+    </insert>
+
+    <update id="increaseFanCount">
+        INSERT INTO tb_bar_count (bar_id, fan_count)
+        VALUES (#{barId}, 1)
+        ON CONFLICT (bar_id) DO UPDATE
+            SET fan_count = tb_bar_count.fan_count + 1,
+                update_time = CURRENT_TIMESTAMP
+    </update>
+
+    <update id="decreaseFanCount">
+        UPDATE tb_bar_count
+        SET fan_count = GREATEST(fan_count - 1, 0),
+            update_time = CURRENT_TIMESTAMP
+        WHERE bar_id = #{barId}
+    </update>
+
+    <select id="selectFanCount" resultType="int">
+        SELECT COALESCE((
+            SELECT fan_count FROM tb_bar_count WHERE bar_id = #{barId}
+        ), 0)
+    </select>
+</mapper>

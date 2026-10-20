@@ -14,6 +14,7 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -47,17 +48,36 @@ public class LikeCountFlushServiceImpl implements LikeCountFlushService {
         if (postIds.isEmpty()) {
             return;
         }
+        List<Long> skipped = new ArrayList<>();
         try {
             for (Long postId : postIds) {
-                Long redisCount = thumbCache.readLikeCount(postId);
-                long count = redisCount != null ? redisCount : thumbMapper.countByPostId(postId);
-                postCountMapper.upsertLikeCount(postId, count);
+                // 同一帖子按锁串行：「读 Redis 计数 → 写 DB」期间不允许别的实例插队，
+                // 否则先读后写的旧值可能覆盖后读先写的新值。
+                String lockToken = thumbCache.tryLockCountFlush(postId);
+                if (lockToken == null) {
+                    skipped.add(postId);
+                    continue;
+                }
+                try {
+                    Long redisCount = thumbCache.readLikeCount(postId);
+                    long count = redisCount != null ? redisCount : thumbMapper.countByPostId(postId);
+                    postCountMapper.upsertLikeCount(postId, count);
+                } finally {
+                    thumbCache.unlockCountFlush(postId, lockToken);
+                }
             }
-            log.info("帖子点赞数刷库完成，帖子数={}", postIds.size());
         } catch (RuntimeException e) {
             thumbCache.restoreDirtyPosts(postIds);
             throw e;
         }
+        if (!skipped.isEmpty()) {
+            // 锁被别的实例占用：放回脏集合，稍后再刷一次
+            thumbCache.restoreDirtyPosts(skipped);
+            if (thumbCache.tryScheduleDelayedFlush()) {
+                sendFlush(LikeCountFlushMessage.timer(), ThumbConstant.MQ_DELAY_LEVEL_10S);
+            }
+        }
+        log.info("帖子点赞数刷库完成，帖子数={}，跳过={}", postIds.size() - skipped.size(), skipped.size());
     }
 
     private void sendFlush(LikeCountFlushMessage body, int delayLevel) {

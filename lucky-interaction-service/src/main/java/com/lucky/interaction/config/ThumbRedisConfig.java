@@ -58,4 +58,13 @@ public class ThumbRedisConfig {
         script.setResultType((Class<List<String>>) (Class<?>) List.class);
         return script;
     }
+
+    /** 点赞/收藏共用的刷库锁释放脚本 */
+    @Bean("countFlushUnlockScript")
+    public DefaultRedisScript<Long> countFlushUnlockScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setLocation(new ClassPathResource("lua/count_flush_unlock.lua"));
+        script.setResultType(Long.class);
+        return script;
+    }
 }

@@ -1,5 +1,5 @@
 server:
-  port: ${INTERACTION_SERVICE_PORT:8140}
+  port: ${INTERACTION_SERVICE_PORT:8003}
 
 spring:
   application:
@@ -21,6 +21,12 @@ mybatis:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+engagement:
+  reconcile:
+    # 每天 04:30（上海）。按 post_id / user_id 游标分批，每批条数见 batch-size
+    cron: ${ENGAGEMENT_RECONCILE_CRON:0 30 4 * * *}
+    batch-size: ${ENGAGEMENT_RECONCILE_BATCH_SIZE:500}
 
 rocketmq:
   name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}

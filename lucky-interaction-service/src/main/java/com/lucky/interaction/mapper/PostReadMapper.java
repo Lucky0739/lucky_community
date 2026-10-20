@@ -11,8 +11,4 @@ public interface PostReadMapper {
             )
             """)
     boolean existsActive(@Param("postId") Long postId);
-
-    /** 帖子作者。删掉的帖子也要能查到，取消点赞时还要给作者减获赞 */
-    @Select("SELECT user_id FROM tb_post WHERE id = #{postId}")
-    Long selectAuthorId(@Param("postId") Long postId);
 }

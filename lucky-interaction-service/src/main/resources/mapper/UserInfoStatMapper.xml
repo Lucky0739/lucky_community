@@ -15,18 +15,6 @@
         WHERE user_id = #{userId}
     </update>
 
-    <update id="increaseLikeCount">
-        UPDATE tb_user_info
-        SET like_count = COALESCE(like_count, 0) + 1
-        WHERE user_id = #{userId}
-    </update>
-
-    <update id="decreaseLikeCount">
-        UPDATE tb_user_info
-        SET like_count = GREATEST(COALESCE(like_count, 0) - 1, 0)
-        WHERE user_id = #{userId}
-    </update>
-
     <update id="increaseFans">
         UPDATE tb_user_info
         SET fans = COALESCE(fans, 0) + 1

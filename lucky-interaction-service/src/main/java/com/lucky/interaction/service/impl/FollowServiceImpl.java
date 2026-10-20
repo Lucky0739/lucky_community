@@ -10,12 +10,15 @@ import com.lucky.interaction.dto.FollowListQueryDTO;
 import com.lucky.interaction.entity.Follow;
 import com.lucky.interaction.enums.FollowLuaResult;
 import com.lucky.interaction.enums.UnfollowLuaResult;
+import com.lucky.interaction.mapper.BarReadMapper;
 import com.lucky.interaction.mapper.FollowMapper;
 import com.lucky.interaction.mapper.UserReadMapper;
 import com.lucky.interaction.mq.message.FollowMessage;
 import com.lucky.interaction.service.FollowService;
-import com.lucky.interaction.support.entity.UserBrief;
-import com.lucky.interaction.vo.FollowUserVO;
+import com.lucky.interaction.support.entity.BarBrief;
+import com.lucky.common.dto.PageQueryDTO;
+import com.lucky.interaction.vo.FollowBarSnapshotVO;
+import com.lucky.interaction.vo.FollowBarVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -40,40 +43,35 @@ import java.util.Set;
 public class FollowServiceImpl implements FollowService {
 
     private final UserReadMapper userReadMapper;
+    private final BarReadMapper barReadMapper;
     private final FollowMapper followMapper;
     private final FollowCache followCache;
     private final RocketMQTemplate rocketMQTemplate;
     private final Clock clock;
 
     @Override
-    public void follow(Long userId, Long followUserId) {
-        // 检验用户是否存在
-        if (followUserId == null) {
-            throw new BusinessException("传入的用户id为空");
+    public void follow(Long userId, Long barId) {
+        if (barId == null) {
+            throw new BusinessException("传入的贴吧id为空");
         }
-
-        if (!userReadMapper.existsById(followUserId)) {
-            throw new BusinessException("用户不存在");
+        if (!barReadMapper.existsActive(barId)) {
+            throw new BusinessException("贴吧不存在");
         }
-         // 时间戳
         long score = clock.millis();
         FollowLuaResult followLuaResult;
         try {
-            followLuaResult = followCache.follow(userId, followUserId, score);
+            followLuaResult = followCache.follow(userId, barId, score);
         } catch (RuntimeException e) {
-            log.error("关注写入 Redis 失败，userId={}, followUserId={}", userId, followUserId, e);
+            log.error("关注写入 Redis 失败，userId={}, barId={}", userId, barId, e);
             throw new BusinessException("关注失败，请稍后重试");
         }
         if (followLuaResult != FollowLuaResult.SUCCESS) {
             throw new BusinessException(followLuaResult == null ? "关注失败，请稍后重试" : followLuaResult.getErrorMsg());
         }
-        /**
-         * 写入消息
-         */
         FollowMessage followMessage = new FollowMessage();
         followMessage.setId(IdUtil.getSnowflakeNextId());
         followMessage.setUserId(userId);
-        followMessage.setFollowUserId(followUserId);
+        followMessage.setBarId(barId);
         followMessage.setFollowTime(score);
         followMessage.setAction(FollowConstant.MQ_TAG);
         try {
@@ -84,44 +82,40 @@ public class FollowServiceImpl implements FollowService {
                         (sendResult == null ? "null" : sendResult.getSendStatus()));
             }
         } catch (RuntimeException e) {
-            followCache.rollback(userId, followUserId);
-            log.error("关注消息发送失败，已回滚 Redis，userId={}, followUserId={}", userId, followUserId, e);
+            followCache.rollback(userId, barId);
+            log.error("关注消息发送失败，已回滚 Redis，userId={}, barId={}", userId, barId, e);
             throw new BusinessException("关注失败，请稍后重试");
         }
     }
 
     @Override
-    public boolean isFollowed(Long userId, Long followUserId) {
-        if (followUserId == null) {
-            throw new BusinessException("用户不存在");
-        }
-        if (followUserId.equals(userId)) {
-            return false;
+    public boolean isFollowed(Long userId, Long barId) {
+        if (barId == null) {
+            throw new BusinessException("贴吧不存在");
         }
         try {
-            if (followCache.isFollowed(userId, followUserId)) {
+            if (followCache.isFollowed(userId, barId)) {
                 return true;
             }
             if (followCache.hasFollowZSet(userId)) {
                 return false;
             }
         } catch (RuntimeException e) {
-            log.error("查询关注关系 Redis 失败，将回源数据库，userId={}, followUserId={}",
-                    userId, followUserId, e);
+            log.error("查询关注关系 Redis 失败，将回源数据库，userId={}, barId={}", userId, barId, e);
         }
-        return followMapper.exists(userId, followUserId);
+        return followMapper.exists(userId, barId);
     }
 
     @Override
-    public void unfollow(Long userId, Long followUserId) {
-        if (followUserId == null) {
-            throw new BusinessException("用户不存在");
+    public void unfollow(Long userId, Long barId) {
+        if (barId == null) {
+            throw new BusinessException("贴吧不存在");
         }
         UnfollowLuaResult unfollowLuaResult;
         try {
-            unfollowLuaResult = followCache.unfollow(userId, followUserId);
+            unfollowLuaResult = followCache.unfollow(userId, barId);
         } catch (RuntimeException e) {
-            log.error("取消关注写入 Redis 失败，userId={}, followUserId={}", userId, followUserId, e);
+            log.error("取消关注写入 Redis 失败，userId={}, barId={}", userId, barId, e);
             throw new BusinessException("取消关注失败，请稍后重试");
         }
         if (unfollowLuaResult != UnfollowLuaResult.SUCCESS) {
@@ -131,7 +125,7 @@ public class FollowServiceImpl implements FollowService {
 
         FollowMessage followMessage = new FollowMessage();
         followMessage.setUserId(userId);
-        followMessage.setFollowUserId(followUserId);
+        followMessage.setBarId(barId);
         followMessage.setAction(FollowConstant.MQ_UNFOLLOW_TAG);
         try {
             SendResult sendResult = rocketMQTemplate.syncSendOrderly(
@@ -141,14 +135,14 @@ public class FollowServiceImpl implements FollowService {
                         (sendResult == null ? "null" : sendResult.getSendStatus()));
             }
         } catch (RuntimeException e) {
-            followCache.restoreAfterUnfollow(userId, followUserId, clock.millis());
-            log.error("取消关注消息发送失败，已回滚 Redis，userId={}, followUserId={}", userId, followUserId, e);
+            followCache.restoreAfterUnfollow(userId, barId, clock.millis());
+            log.error("取消关注消息发送失败，已回滚 Redis，userId={}, barId={}", userId, barId, e);
             throw new BusinessException("取消关注失败，请稍后重试");
         }
     }
 
     @Override
-    public PageResult<FollowUserVO> pageFollowees(Long viewerId, FollowListQueryDTO query) {
+    public PageResult<FollowBarVO> pageFollowees(Long viewerId, FollowListQueryDTO query) {
         Long ownerId = query.getUserId() == null ? viewerId : query.getUserId();
         if (!userReadMapper.existsById(ownerId)) {
             throw new BusinessException("用户不存在");
@@ -161,7 +155,7 @@ public class FollowServiceImpl implements FollowService {
         List<FolloweeEntry> entries;
         long total;
         if (keyword != null) {
-            // Redis ZSet 只有用户 ID，搜昵称必须联表。关键词组合无穷，不走缓存。
+            // Redis ZSet 只有贴吧 ID，搜吧名必须联表。
             entries = pageFolloweesFromDb(ownerId, keyword, offset, pageSize);
             total = followMapper.countByUserId(ownerId, keyword);
         } else {
@@ -188,25 +182,26 @@ public class FollowServiceImpl implements FollowService {
         for (FolloweeEntry entry : entries) {
             followeeIds.add(entry.getFollowUserId());
         }
-        Map<Long, UserBrief> users = new HashMap<>();
-        List<UserBrief> briefs = userReadMapper.selectByIds(followeeIds);
+        Map<Long, BarBrief> bars = new HashMap<>();
+        List<BarBrief> briefs = barReadMapper.selectByIds(followeeIds);
         if (briefs != null) {
-            for (UserBrief brief : briefs) {
-                users.put(brief.getId(), brief);
+            for (BarBrief brief : briefs) {
+                bars.put(brief.getId(), brief);
             }
         }
         Set<Long> followedIds = resolveFollowed(viewerId, followeeIds);
 
-        List<FollowUserVO> records = new ArrayList<>(entries.size());
+        List<FollowBarVO> records = new ArrayList<>(entries.size());
         for (FolloweeEntry entry : entries) {
-            UserBrief brief = users.get(entry.getFollowUserId());
+            BarBrief brief = bars.get(entry.getFollowUserId());
             if (brief == null) {
                 continue;
             }
-            FollowUserVO vo = new FollowUserVO();
-            vo.setUserId(brief.getId());
-            vo.setNickName(brief.getNickName());
-            vo.setIcon(brief.getIcon());
+            FollowBarVO vo = new FollowBarVO();
+            vo.setBarId(brief.getId());
+            vo.setName(brief.getName());
+            vo.setAvatar(brief.getAvatar());
+            vo.setFollowCount(brief.getFollowCount());
             vo.setFollowed(followedIds.contains(brief.getId()));
             vo.setFollowTime(LocalDateTime.ofInstant(
                     Instant.ofEpochMilli(entry.getFollowTimeMillis()), clock.getZone()));
@@ -226,9 +221,52 @@ public class FollowServiceImpl implements FollowService {
             if (row.getCreateTime() != null) {
                 millis = row.getCreateTime().atZone(clock.getZone()).toInstant().toEpochMilli();
             }
-            entries.add(new FolloweeEntry(row.getFollowUserId(), millis));
+            entries.add(new FolloweeEntry(row.getBarId(), millis));
         }
         return entries;
+    }
+
+    @Override
+    public List<FollowBarSnapshotVO> listBarSnapshots(Long viewerId, List<Long> barIds) {
+        if (barIds == null || barIds.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ordered = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+        for (Long barId : barIds) {
+            if (barId == null || !seen.add(barId)) {
+                continue;
+            }
+            ordered.add(barId);
+            if (ordered.size() >= PageQueryDTO.MAX_SIZE) {
+                break;
+            }
+        }
+        List<BarBrief> briefs = barReadMapper.selectByIds(ordered);
+        if (briefs == null || briefs.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, BarBrief> barById = new HashMap<>();
+        for (BarBrief brief : briefs) {
+            barById.put(brief.getId(), brief);
+        }
+        Set<Long> followedIds = resolveFollowed(viewerId, ordered);
+        List<FollowBarSnapshotVO> result = new ArrayList<>(ordered.size());
+        for (Long barId : ordered) {
+            BarBrief brief = barById.get(barId);
+            if (brief == null) {
+                continue;
+            }
+            FollowBarSnapshotVO vo = new FollowBarSnapshotVO();
+            vo.setBarId(brief.getId());
+            vo.setName(brief.getName());
+            vo.setAvatar(brief.getAvatar());
+            vo.setFollowCount(brief.getFollowCount() == null ? 0 : brief.getFollowCount());
+            vo.setPostCount(brief.getPostCount() == null ? 0 : brief.getPostCount());
+            vo.setFollowed(followedIds.contains(brief.getId()));
+            result.add(vo);
+        }
+        return result;
     }
 
     private Set<Long> resolveFollowed(Long viewerId, List<Long> followeeIds) {
@@ -248,7 +286,7 @@ public class FollowServiceImpl implements FollowService {
         } catch (RuntimeException e) {
             log.error("批量查询关注状态 Redis 失败，回源数据库，viewerId={}", viewerId, e);
         }
-        List<Long> ids = followMapper.selectFolloweeIds(viewerId, followeeIds);
+        List<Long> ids = followMapper.selectFollowedBarIds(viewerId, followeeIds);
         if (ids != null) {
             followed.addAll(ids);
         }

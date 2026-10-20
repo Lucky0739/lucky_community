@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.BarReadMapper">
+
+    <select id="existsActive" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM tb_bar
+            WHERE id = #{barId} AND status = 1
+        )
+    </select>
+
+    <select id="selectFollowCount" resultType="int">
+        SELECT COALESCE((
+            SELECT fan_count FROM tb_bar_count WHERE bar_id = #{barId}
+        ), 0)
+    </select>
+
+    <select id="selectByIds" resultType="com.lucky.interaction.support.entity.BarBrief">
+        SELECT b.id,
+               b.name,
+               b.avatar,
+               b.post_count AS postCount,
+               COALESCE(bc.fan_count, 0) AS followCount
+        FROM tb_bar b
+        LEFT JOIN tb_bar_count bc ON bc.bar_id = b.id
+        WHERE b.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lucky.interaction.mapper.PostSummaryReadMapper">
+
+    <!-- 改帖会把 analysis_status 重置为 0，旧结论行可能还在；必须两个条件一起看 -->
+    <sql id="ApprovedPost">
+        EXISTS (
+            SELECT 1 FROM tb_post_analysis a
+            WHERE a.post_id = tb_post.id
+              AND a.risk_level = '无风险'
+        )
+          AND tb_post.analysis_status = 2
+    </sql>
+
+    <select id="selectApprovedByIds" resultType="com.lucky.interaction.entity.PostSummaryRow">
+        SELECT id, bar_id AS barId, user_id AS userId, title, content_preview AS contentPreview,
+               cover_image AS coverImage, image_count AS imageCount, create_time AS createTime
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedPost"/>
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectBarNamesByIds" resultType="map">
+        SELECT id AS "barId", name AS "barName"
+        FROM tb_bar
+        WHERE status = 1
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectCountsByPostIds" resultType="map">
+        SELECT post_id AS "postId", like_count AS "likeCount",
+               favorite_count AS "favoriteCount", comment_count AS "commentCount"
+        FROM tb_post_count
+        WHERE post_id IN
+        <foreach collection="postIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </select>
+
+    <select id="countCommentsByPostIds" resultType="map">
+        SELECT post_id AS "postId", COUNT(*) AS cnt
+        FROM tb_comment
+        WHERE deleted = 0
+          AND post_id IN
+        <foreach collection="postIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+        GROUP BY post_id
+    </select>
+</mapper>

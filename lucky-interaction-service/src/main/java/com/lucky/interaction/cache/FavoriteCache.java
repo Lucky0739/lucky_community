@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +28,7 @@ public class FavoriteCache {
     private final DefaultRedisScript<Long> thumbUnlikeRollbackScript;
     private final DefaultRedisScript<Long> thumbCountStatScript;
     private final DefaultRedisScript<List<String>> thumbCountDrainScript;
+    private final DefaultRedisScript<Long> countFlushUnlockScript;
 
     public FavoriteCache(StringRedisTemplate stringRedisTemplate,
                          @Qualifier("thumbLikeScript") DefaultRedisScript<Long> thumbLikeScript,
@@ -34,7 +36,8 @@ public class FavoriteCache {
                          @Qualifier("thumbUnlikeScript") DefaultRedisScript<Long> thumbUnlikeScript,
                          @Qualifier("thumbUnlikeRollbackScript") DefaultRedisScript<Long> thumbUnlikeRollbackScript,
                          @Qualifier("thumbCountStatScript") DefaultRedisScript<Long> thumbCountStatScript,
-                         @Qualifier("thumbCountDrainScript") DefaultRedisScript<List<String>> thumbCountDrainScript) {
+                         @Qualifier("thumbCountDrainScript") DefaultRedisScript<List<String>> thumbCountDrainScript,
+                         @Qualifier("countFlushUnlockScript") DefaultRedisScript<Long> countFlushUnlockScript) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.thumbLikeScript = thumbLikeScript;
         this.thumbBloomInitScript = thumbBloomInitScript;
@@ -42,6 +45,7 @@ public class FavoriteCache {
         this.thumbUnlikeRollbackScript = thumbUnlikeRollbackScript;
         this.thumbCountStatScript = thumbCountStatScript;
         this.thumbCountDrainScript = thumbCountDrainScript;
+        this.countFlushUnlockScript = countFlushUnlockScript;
     }
 
     public void preloadCountIfAbsent(Long postId, long dbCount) {
@@ -178,6 +182,41 @@ public class FavoriteCache {
         stringRedisTemplate.opsForSet().add(
                 RedisKeyConstants.FAVORITE_COUNT_DIRTY_SET,
                 postIds.stream().map(String::valueOf).toArray(String[]::new));
+    }
+
+    /**
+     * 同一帖子的刷库串行化：拿到锁才允许「读 Redis 计数 → 写 DB」。
+     * 返回 null 表示别的实例正在刷这个帖子，调用方应把 postId 放回脏集合并稍后重试。
+     */
+    public String tryLockCountFlush(Long postId) {
+        String token = UUID.randomUUID().toString();
+        Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(
+                RedisKeyConstants.buildFavoriteCountFlushLockKey(postId),
+                token,
+                Duration.ofSeconds(FavoriteConstant.COUNT_FLUSH_LOCK_TTL_SECONDS));
+        return Boolean.TRUE.equals(locked) ? token : null;
+    }
+
+    public void unlockCountFlush(Long postId, String token) {
+        if (token == null) {
+            return;
+        }
+        stringRedisTemplate.execute(
+                countFlushUnlockScript,
+                List.of(RedisKeyConstants.buildFavoriteCountFlushLockKey(postId)),
+                token);
+    }
+
+    public boolean isFavoriteCountDirty(Long postId) {
+        return Boolean.TRUE.equals(stringRedisTemplate.opsForSet()
+                .isMember(RedisKeyConstants.FAVORITE_COUNT_DIRTY_SET, String.valueOf(postId)));
+    }
+
+    public void writeReconciledCount(Long postId, long count) {
+        stringRedisTemplate.opsForValue().set(
+                RedisKeyConstants.buildFavoriteCountKey(postId),
+                String.valueOf(count),
+                Duration.ofSeconds(FavoriteConstant.COUNT_TTL_SECONDS));
     }
 
     public Long readFavoriteCount(Long postId) {

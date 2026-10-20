@@ -23,6 +23,9 @@ public final class ThumbConstant {
     /** 帖子点赞计数过期时间：30 分钟。过期后用 tb_thumb 的行数灌回再加一 */
     public static final long COUNT_TTL_SECONDS = 30L * 60;
 
+    /** 计数刷库锁 TTL：只需覆盖一次「读 Redis + 单行 upsert」 */
+    public static final long COUNT_FLUSH_LOCK_TTL_SECONDS = 5L;
+
     public static final String MQ_TOPIC = "thumb-topic";
 
     public static final String MQ_TAG = "LIKE";

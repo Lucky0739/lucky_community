@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +32,7 @@ public class ThumbCache {
     private final DefaultRedisScript<Long> thumbUnlikeRollbackScript;
     private final DefaultRedisScript<Long> thumbCountStatScript;
     private final DefaultRedisScript<List<String>> thumbCountDrainScript;
+    private final DefaultRedisScript<Long> countFlushUnlockScript;
 
     public ThumbCache(StringRedisTemplate stringRedisTemplate,
                       @Qualifier("thumbLikeScript") DefaultRedisScript<Long> thumbLikeScript,
@@ -38,7 +40,8 @@ public class ThumbCache {
                       @Qualifier("thumbUnlikeScript") DefaultRedisScript<Long> thumbUnlikeScript,
                       @Qualifier("thumbUnlikeRollbackScript") DefaultRedisScript<Long> thumbUnlikeRollbackScript,
                       @Qualifier("thumbCountStatScript") DefaultRedisScript<Long> thumbCountStatScript,
-                      @Qualifier("thumbCountDrainScript") DefaultRedisScript<List<String>> thumbCountDrainScript) {
+                      @Qualifier("thumbCountDrainScript") DefaultRedisScript<List<String>> thumbCountDrainScript,
+                      @Qualifier("countFlushUnlockScript") DefaultRedisScript<Long> countFlushUnlockScript) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.thumbLikeScript = thumbLikeScript;
         this.thumbBloomInitScript = thumbBloomInitScript;
@@ -46,6 +49,7 @@ public class ThumbCache {
         this.thumbUnlikeRollbackScript = thumbUnlikeRollbackScript;
         this.thumbCountStatScript = thumbCountStatScript;
         this.thumbCountDrainScript = thumbCountDrainScript;
+        this.countFlushUnlockScript = countFlushUnlockScript;
     }
 
     /**
@@ -202,6 +206,42 @@ public class ThumbCache {
         stringRedisTemplate.opsForSet().add(
                 RedisKeyConstants.THUMB_LIKE_COUNT_DIRTY_SET,
                 postIds.stream().map(String::valueOf).toArray(String[]::new));
+    }
+
+    /**
+     * 同一帖子的刷库串行化：拿到锁才允许「读 Redis 计数 → 写 DB」。
+     * 返回 null 表示别的实例正在刷这个帖子，调用方应把 postId 放回脏集合并稍后重试。
+     */
+    public String tryLockCountFlush(Long postId) {
+        String token = UUID.randomUUID().toString();
+        Boolean locked = stringRedisTemplate.opsForValue().setIfAbsent(
+                RedisKeyConstants.buildThumbLikeCountFlushLockKey(postId),
+                token,
+                Duration.ofSeconds(ThumbConstant.COUNT_FLUSH_LOCK_TTL_SECONDS));
+        return Boolean.TRUE.equals(locked) ? token : null;
+    }
+
+    public void unlockCountFlush(Long postId, String token) {
+        if (token == null) {
+            return;
+        }
+        stringRedisTemplate.execute(
+                countFlushUnlockScript,
+                List.of(RedisKeyConstants.buildThumbLikeCountFlushLockKey(postId)),
+                token);
+    }
+
+    public boolean isLikeCountDirty(Long postId) {
+        return Boolean.TRUE.equals(stringRedisTemplate.opsForSet()
+                .isMember(RedisKeyConstants.THUMB_LIKE_COUNT_DIRTY_SET, String.valueOf(postId)));
+    }
+
+    /** 对账后覆盖展示计数。正在刷库的帖子不要写，避免盖掉还没落库的增量。 */
+    public void writeReconciledCount(Long postId, long count) {
+        stringRedisTemplate.opsForValue().set(
+                RedisKeyManage.THUMB_COUNT.key(postId),
+                String.valueOf(count),
+                Duration.ofSeconds(ThumbConstant.COUNT_TTL_SECONDS));
     }
 
     /** Redis 里没有计数时返回 null，调用方改去数 tb_thumb */

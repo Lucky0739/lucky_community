@@ -21,6 +21,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -77,7 +78,7 @@ public class FavoritePersistConsumer {
                 continue;
             }
             try {
-                persist(parse(batch));
+                persistWithDeadlockRetry(parse(batch));
                 consumer.commitSync();
             } catch (Exception e) {
                 log.error("收藏批量落库失败，不提交，稍后重拉，size={}", batch.size(), e);
@@ -109,6 +110,58 @@ public class FavoritePersistConsumer {
             }
         }
         return messages;
+    }
+
+    /**
+     * 落库失败若为数据库死锁，在同批消息上有限次重试；仍失败则抛出，由外层不 commit、MQ 重拉。
+     */
+    private void persistWithDeadlockRetry(List<FavoriteMessage> messages) throws Exception {
+        int maxAttempts = FavoriteConstant.PERSIST_DEADLOCK_RETRY_MAX;
+        Exception last = null;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                persist(messages);
+                return;
+            } catch (Exception e) {
+                last = e;
+                if (attempt >= maxAttempts || !isDeadlock(e)) {
+                    throw e;
+                }
+                log.warn("收藏批量落库死锁，第 {}/{} 次重试，本批净消息 {} 条",
+                        attempt, maxAttempts, messages.size(), e);
+                pauseBeforeDeadlockRetry(attempt);
+            }
+        }
+        if (last != null) {
+            throw last;
+        }
+    }
+
+    private static void pauseBeforeDeadlockRetry(int attempt) {
+        try {
+            Thread.sleep(50L * attempt);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("收藏落库死锁重试被中断", e);
+        }
+    }
+
+    private static boolean isDeadlock(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof SQLException sqlException) {
+                String state = sqlException.getSQLState();
+                if ("40P01".equals(state) || "40001".equals(state) || sqlException.getErrorCode() == 1213) {
+                    return true;
+                }
+            }
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("deadlock")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private void persist(List<FavoriteMessage> messages) {

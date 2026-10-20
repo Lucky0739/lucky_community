@@ -4,8 +4,65 @@
 <mapper namespace="com.lucky.interaction.mapper.FollowMapper">
 
     <insert id="insertIgnore">
-        INSERT INTO tb_follow (id, user_id, follow_user_id, create_time)
-        VALUES (#{id}, #{userId}, #{followUserId}, #{createTime})
-        ON CONFLICT (user_id, follow_user_id) DO NOTHING
+        INSERT INTO tb_follow (id, user_id, bar_id, create_time)
+        VALUES (#{id}, #{userId}, #{barId}, #{createTime})
+        ON CONFLICT (user_id, bar_id) DO NOTHING
     </insert>
+
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM tb_follow
+            WHERE user_id = #{userId} AND bar_id = #{barId}
+        )
+    </select>
+
+    <delete id="deleteByUserAndBar">
+        DELETE FROM tb_follow
+        WHERE user_id = #{userId} AND bar_id = #{barId}
+    </delete>
+
+    <select id="countByUserId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_follow f
+        JOIN tb_bar b ON b.id = f.bar_id
+        WHERE f.user_id = #{userId}
+        <if test="keyword != null and keyword != ''">
+            AND b.name ILIKE '%' || #{keyword} || '%' ESCAPE '\'
+        </if>
+    </select>
+
+    <select id="selectPageByUserId" resultType="com.lucky.interaction.entity.Follow">
+        SELECT f.id, f.user_id AS userId, f.bar_id AS barId, f.create_time AS createTime
+        FROM tb_follow f
+        JOIN tb_bar b ON b.id = f.bar_id
+        WHERE f.user_id = #{userId}
+        <if test="keyword != null and keyword != ''">
+            AND b.name ILIKE '%' || #{keyword} || '%' ESCAPE '\'
+        </if>
+        ORDER BY f.create_time DESC, f.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectFollowedBarIds" resultType="long">
+        SELECT bar_id
+        FROM tb_follow
+        WHERE user_id = #{userId}
+          AND bar_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectUserIdsByBarId" resultType="long">
+        SELECT user_id
+        FROM tb_follow
+        WHERE bar_id = #{barId}
+    </select>
+
+    <select id="selectBarIdsByUserId" resultType="long">
+        SELECT bar_id
+        FROM tb_follow
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
 </mapper>

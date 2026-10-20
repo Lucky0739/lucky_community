@@ -12,9 +12,9 @@ public interface FollowMapper {
      */
     int insertIgnore(Follow follow);
 
-    boolean exists(@Param("userId") Long userId, @Param("followUserId") Long followUserId);
+    boolean exists(@Param("userId") Long userId, @Param("barId") Long barId);
 
-    int deleteByUserAndFollowee(@Param("userId") Long userId, @Param("followUserId") Long followUserId);
+    int deleteByUserAndBar(@Param("userId") Long userId, @Param("barId") Long barId);
 
     long countByUserId(@Param("userId") Long userId, @Param("keyword") String keyword);
 
@@ -23,5 +23,9 @@ public interface FollowMapper {
                                     @Param("offset") int offset,
                                     @Param("limit") int limit);
 
-    List<Long> selectFolloweeIds(@Param("userId") Long userId, @Param("ids") List<Long> ids);
+    List<Long> selectFollowedBarIds(@Param("userId") Long userId, @Param("ids") List<Long> ids);
+
+    List<Long> selectUserIdsByBarId(@Param("barId") Long barId);
+
+    List<Long> selectBarIdsByUserId(@Param("userId") Long userId);
 }

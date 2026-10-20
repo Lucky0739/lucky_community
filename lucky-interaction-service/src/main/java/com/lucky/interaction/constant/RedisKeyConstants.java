@@ -45,6 +45,13 @@ public class RedisKeyConstants {
     /** 10 秒延迟刷库定时器占位，避免重复发延迟消息 */
     public static final String THUMB_LIKE_COUNT_FLUSH_SCHEDULED = "thumb:like:count:flush:scheduled";
 
+    /** 点赞数刷库锁：同一帖子的「读 Redis → 写 DB」串行化，防止旧值覆盖新值 */
+    public static final String THUMB_LIKE_COUNT_FLUSH_LOCK_KEY = "thumb:like:count:flush:lock:";
+
+    public static String buildThumbLikeCountFlushLockKey(Long postId) {
+        return THUMB_LIKE_COUNT_FLUSH_LOCK_KEY + postId;
+    }
+
     /** 用户收藏布隆：bloom:post:favorites:{userId} */
     public static final String BLOOM_USER_POST_FAVORITE_LIST_KEY = "bloom:post:favorites:";
 
@@ -83,4 +90,11 @@ public class RedisKeyConstants {
     public static final String FAVORITE_COUNT_DIRTY_SET = "favorite:count:dirty";
     public static final String FAVORITE_COUNT_EVENT_COUNTER = "favorite:count:events";
     public static final String FAVORITE_COUNT_FLUSH_SCHEDULED = "favorite:count:flush:scheduled";
+
+    /** 收藏数刷库锁：同一帖子的「读 Redis → 写 DB」串行化，防止旧值覆盖新值 */
+    public static final String FAVORITE_COUNT_FLUSH_LOCK_KEY = "favorite:count:flush:lock:";
+
+    public static String buildFavoriteCountFlushLockKey(Long postId) {
+        return FAVORITE_COUNT_FLUSH_LOCK_KEY + postId;
+    }
 }

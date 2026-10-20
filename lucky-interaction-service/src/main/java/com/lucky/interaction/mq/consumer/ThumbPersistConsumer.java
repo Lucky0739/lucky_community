@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucky.interaction.cache.ThumbCache;
 import com.lucky.interaction.constant.ThumbConstant;
 import com.lucky.interaction.entity.Thumb;
-import com.lucky.interaction.mapper.PostReadMapper;
 import com.lucky.interaction.mapper.ThumbMapper;
-import com.lucky.interaction.mapper.UserInfoStatMapper;
 import com.lucky.interaction.mq.message.ThumbMessage;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -23,11 +21,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +42,6 @@ public class ThumbPersistConsumer {
 
     /** 点赞记录（tb_thumb）读写 */
     private final ThumbMapper thumbMapper;
-
-    /** 查帖子作者，维护作者获赞数时用 */
-    private final PostReadMapper postReadMapper;
-
-    /** 作者获赞数（tb_user_info.like_count） */
-    private final UserInfoStatMapper userInfoStatMapper;
 
     /** 清待落库标记 */
     private final ThumbCache thumbCache;
@@ -110,7 +102,7 @@ public class ThumbPersistConsumer {
                 continue;
             }
             try {
-                persist(parse(batch));
+                persistWithDeadlockRetry(parse(batch));
                 consumer.commitSync();          // 成功才提交；失败落到下面的 catch，不提交
             } catch (Exception e) {
                 log.error("点赞批量落库失败，不提交，稍后重拉，size={}", batch.size(), e);
@@ -151,6 +143,58 @@ public class ThumbPersistConsumer {
     }
 
     /**
+     * 落库失败若为数据库死锁，在同批消息上有限次重试；仍失败则抛出，由外层不 commit、MQ 重拉。
+     */
+    private void persistWithDeadlockRetry(List<ThumbMessage> messages) throws Exception {
+        int maxAttempts = ThumbConstant.PERSIST_DEADLOCK_RETRY_MAX;
+        Exception last = null;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                persist(messages);
+                return;
+            } catch (Exception e) {
+                last = e;
+                if (attempt >= maxAttempts || !isDeadlock(e)) {
+                    throw e;
+                }
+                log.warn("点赞批量落库死锁，第 {}/{} 次重试，本批净消息 {} 条",
+                        attempt, maxAttempts, messages.size(), e);
+                pauseBeforeDeadlockRetry(attempt);
+            }
+        }
+        if (last != null) {
+            throw last;
+        }
+    }
+
+    private static void pauseBeforeDeadlockRetry(int attempt) {
+        try {
+            Thread.sleep(50L * attempt);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("点赞落库死锁重试被中断", e);
+        }
+    }
+
+    private static boolean isDeadlock(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof SQLException sqlException) {
+                String state = sqlException.getSQLState();
+                if ("40P01".equals(state) || "40001".equals(state) || sqlException.getErrorCode() == 1213) {
+                    return true;
+                }
+            }
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("deadlock")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    /**
      * 批内先按 (userId, postId) 抵消，再在一个事务里批量落库。
      * 全部抵消时直接返回，不碰数据库。
      */
@@ -182,8 +226,8 @@ public class ThumbPersistConsumer {
     }
 
     /**
-     * 把抵消后的净操作落库：批量增删 tb_thumb → 维护作者获赞数 → 刷帖子点赞数 → 清待落库标记。
-     * 增删都用 RETURNING 拿回**真正**变动的行，所以整批重投不会重复计数。
+     * 把抵消后的净操作落库：批量增删 tb_thumb → 清待落库标记。
+     * 增删都幂等，整批重投不会重复写。
      */
     private void applyBatch(List<ThumbMessage> netOps) {
         List<Thumb> toInsert = new ArrayList<>();
@@ -199,48 +243,18 @@ public class ThumbPersistConsumer {
                         action, message.getUserId(), message.getPostId());
             }
         }
-        // 只统计真正插入/删除的行，重投不会重复加作者获赞数
-        Map<Long, Integer> postDeltas = new HashMap<>();
         if (!toInsert.isEmpty()) {
-            for (Thumb inserted : thumbMapper.batchInsertIgnore(toInsert)) {
-                postDeltas.merge(inserted.getPostId(), 1, Integer::sum);
-            }
+            thumbMapper.batchInsertIgnore(toInsert);
         }
         if (!toDelete.isEmpty()) {
-            for (Thumb deleted : thumbMapper.batchDeleteByUserAndPost(toDelete)) {
-                postDeltas.merge(deleted.getPostId(), -1, Integer::sum);
-            }
+            thumbMapper.batchDeleteByUserAndPost(toDelete);
         }
-        // 作者获赞数：按作者聚合后一次更新
-        Map<Long, Integer> authorDeltas = new HashMap<>();
-        for (Map.Entry<Long, Integer> entry : postDeltas.entrySet()) {
-            if (entry.getValue() == 0) {
-                continue;
-            }
-            Long authorId = postReadMapper.selectAuthorId(entry.getKey());
-            if (authorId == null) {
-                log.warn("点赞落库时找不到帖子作者，不更新获赞数，postId={}", entry.getKey());
-                continue;
-            }
-            authorDeltas.merge(authorId, entry.getValue(), Integer::sum);
-        }
-        authorDeltas.forEach((userId, delta) -> {
-            if (delta > 0) {
-                for (int i = 0; i < delta; i++) {
-                    userInfoStatMapper.increaseLikeCount(userId);
-                }
-            } else if (delta < 0) {
-                for (int i = 0; i < -delta; i++) {
-                    userInfoStatMapper.decreaseLikeCount(userId);
-                }
-            }
-        });
 
         // 净生效的记录，清掉待落库标记
         for (ThumbMessage message : netOps) {
             thumbCache.clearUnsynced(message.getUserId(), message.getPostId());
         }
-        log.info("点赞批量落库完成，净操作 {} 条，涉及帖子 {} 个", netOps.size(), postDeltas.size());
+        log.info("点赞批量落库完成，净操作 {} 条", netOps.size());
     }
 
     /** MQ 消息 → tb_thumb 实体（插入用得上 createTime，删除用不上） */

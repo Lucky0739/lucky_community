@@ -2,6 +2,7 @@ package com.lucky.interaction.mq.consumer;
 
 import com.lucky.interaction.constant.FollowConstant;
 import com.lucky.interaction.entity.Follow;
+import com.lucky.interaction.mapper.BarCountMapper;
 import com.lucky.interaction.mapper.FollowMapper;
 import com.lucky.interaction.mapper.UserInfoStatMapper;
 import com.lucky.interaction.mq.message.FollowMessage;
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 
 /**
  * 关注关系落库：同一消费组按用户有序处理关注/取消，避免后发的删除被先到的插入覆盖。
- * 关注数和粉丝数都在关系真正插入或删除时加减。重复消息不再加减。
+ * 用户的关注数在关系插入/删除时加减；贴吧粉丝数写入 tb_bar_count.fan_count。
  */
 @Slf4j
 @Service
@@ -34,6 +35,7 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
 
     private final FollowMapper followMapper;
     private final UserInfoStatMapper userInfoStatMapper;
+    private final BarCountMapper barCountMapper;
     private final Clock clock;
 
     @Override
@@ -41,29 +43,28 @@ public class FollowPersistConsumer implements RocketMQListener<FollowMessage> {
     public void onMessage(FollowMessage message) {
         // 取消关注
         if (FollowConstant.MQ_UNFOLLOW_TAG.equals(message.getAction())) {
-            int deleted = followMapper.deleteByUserAndFollowee(message.getUserId(), message.getFollowUserId());
+            int deleted = followMapper.deleteByUserAndBar(message.getUserId(), message.getBarId());
             if (deleted == 0) {
-                log.info("关注关系已不存在，userId={}, followUserId={}",
-                        message.getUserId(), message.getFollowUserId());
+                log.info("关注关系已不存在，userId={}, barId={}",
+                        message.getUserId(), message.getBarId());
             } else {
                 userInfoStatMapper.decreaseFollowee(message.getUserId());
-                userInfoStatMapper.decreaseFans(message.getFollowUserId());
+                barCountMapper.decreaseFanCount(message.getBarId());
             }
             return;
         }
         Follow follow = new Follow();
         follow.setId(message.getId());
         follow.setUserId(message.getUserId());
-        follow.setFollowUserId(message.getFollowUserId());
+        follow.setBarId(message.getBarId());
         follow.setCreateTime(toCreateTime(message.getFollowTime()));
-        // 关注功能
         int inserted = followMapper.insertIgnore(follow);
         if (inserted == 0) {
-            log.info("关注关系已存在，userId={}, followUserId={}",
-                    message.getUserId(), message.getFollowUserId());
+            log.info("关注关系已存在，userId={}, barId={}",
+                    message.getUserId(), message.getBarId());
         } else {
             userInfoStatMapper.increaseFollowee(message.getUserId());
-            userInfoStatMapper.increaseFans(message.getFollowUserId());
+            barCountMapper.increaseFanCount(message.getBarId());
         }
     }
 
