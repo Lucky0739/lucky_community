@@ -3,20 +3,30 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lucky.community.mapper.BarMapper">
 
-    <sql id="BarColumns">
-        id, name, description, avatar, follow_count, post_count, owner_user_id, status, create_time, update_time
+    <!-- 粉丝数来自 tb_bar_count，与 tb_post_count 同类计数表 -->
+    <sql id="BarSelectColumns">
+        b.id,
+        b.name,
+        b.description,
+        b.avatar,
+        COALESCE(bc.fan_count, 0) AS follow_count,
+        b.post_count,
+        b.owner_user_id,
+        b.status,
+        b.create_time,
+        b.update_time
     </sql>
 
     <insert id="insert">
-        INSERT INTO tb_bar (id, name, description, avatar, follow_count, post_count, owner_user_id, status)
+        INSERT INTO tb_bar (id, name, description, avatar, post_count, owner_user_id, status)
         VALUES (#{id}, #{name}, #{description}, #{avatar},
-                COALESCE(#{followCount}, 0), COALESCE(#{postCount}, 0), #{ownerUserId}, #{status})
+                COALESCE(#{postCount}, 0), #{ownerUserId}, #{status})
     </insert>
 
     <select id="selectById" resultType="com.lucky.community.entity.Bar">
-        SELECT <include refid="BarColumns"/>
-        FROM tb_bar
-        WHERE id = #{id}
+        SELECT <include refid="BarSelectColumns"/>
+        <include refid="BarJoinCount"/>
+        WHERE b.id = #{id}
     </select>
 
     <update id="updateById">
@@ -36,11 +46,16 @@
         WHERE id = #{id}
     </update>
 
+    <sql id="BarJoinCount">
+        FROM tb_bar b
+        LEFT JOIN tb_bar_count bc ON bc.bar_id = b.id
+    </sql>
+
     <sql id="PageFilter">
-        FROM tb_bar
-        WHERE status = #{status}
+        <include refid="BarJoinCount"/>
+        WHERE b.status = #{status}
         <if test="keyword != null and keyword != ''">
-            AND name LIKE #{keyword} || '%'
+            AND b.name LIKE #{keyword} || '%'
         </if>
     </sql>
 
@@ -50,20 +65,20 @@
     </select>
 
     <select id="selectPage" resultType="com.lucky.community.entity.Bar">
-        SELECT <include refid="BarColumns"/>
+        SELECT <include refid="BarSelectColumns"/>
         <include refid="PageFilter"/>
-        ORDER BY id DESC
+        ORDER BY b.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <sql id="AdminPageFilter">
-        FROM tb_bar
+        <include refid="BarJoinCount"/>
         WHERE 1 = 1
         <if test="status != null">
-            AND status = #{status}
+            AND b.status = #{status}
         </if>
         <if test="keyword != null and keyword != ''">
-            AND name LIKE #{keyword} || '%'
+            AND b.name LIKE #{keyword} || '%'
         </if>
     </sql>
 
@@ -73,16 +88,16 @@
     </select>
 
     <select id="selectAdminPage" resultType="com.lucky.community.entity.Bar">
-        SELECT <include refid="BarColumns"/>
+        SELECT <include refid="BarSelectColumns"/>
         <include refid="AdminPageFilter"/>
-        ORDER BY id DESC
+        ORDER BY b.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="selectByIds" resultType="com.lucky.community.entity.Bar">
-        SELECT <include refid="BarColumns"/>
-        FROM tb_bar
-        WHERE id IN
+        SELECT <include refid="BarSelectColumns"/>
+        <include refid="BarJoinCount"/>
+        WHERE b.id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
@@ -90,5 +105,21 @@
 
     <select id="selectAllIds" resultType="long">
         SELECT id FROM tb_bar
+    </select>
+
+    <select id="countByOwnerUserId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_bar b
+        WHERE b.owner_user_id = #{ownerUserId}
+          AND b.status = 1
+    </select>
+
+    <select id="selectPageByOwnerUserId" resultType="com.lucky.community.entity.Bar">
+        SELECT <include refid="BarSelectColumns"/>
+        <include refid="BarJoinCount"/>
+        WHERE b.owner_user_id = #{ownerUserId}
+          AND b.status = 1
+        ORDER BY b.id DESC
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 </mapper>

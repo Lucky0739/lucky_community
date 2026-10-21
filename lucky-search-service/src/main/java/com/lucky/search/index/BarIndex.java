@@ -23,7 +23,7 @@ public class BarIndex {
     /** tb_bar.avatar */
     public static final String FIELD_AVATAR = "avatar";
 
-    /** tb_bar.follow_count */
+    /** tb_bar_count.fan_count（索引字段名仍为 follow_count） */
     public static final String FIELD_FOLLOW_COUNT = "follow_count";
 
     /** tb_bar.post_count */

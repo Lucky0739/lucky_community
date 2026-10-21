@@ -22,11 +22,14 @@ public class BarVO {
     /** 吧头像URL */
     private String avatar;
 
-    /** 关注数：关注该吧的人数 */
+    /** 粉丝数：关注该吧的人数，来自 tb_bar_count.fan_count */
     private Integer followCount;
 
     /** 帖子数：该吧未删除的帖子数 */
     private Integer postCount;
+
+    /** 当前用户是否已关注该吧；未登录或未带 token 时为 false */
+    private Boolean followed;
 
     /** 吧主user_id；历史数据可能为空 */
     private Long ownerUserId;

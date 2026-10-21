@@ -6,6 +6,7 @@ import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.file.FileService;
 import com.lucky.community.dto.BarQueryDTO;
 import com.lucky.community.dto.CreateBarDTO;
+import com.lucky.community.dto.OwnedBarQueryDTO;
 import com.lucky.community.dto.UpdateBarDTO;
 import com.lucky.community.service.BarService;
 import com.lucky.community.vo.BarVO;
@@ -30,7 +31,6 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/bar")
-@AuthRequired
 @RequiredArgsConstructor
 public class BarController {
 
@@ -42,6 +42,7 @@ public class BarController {
      * @param createBarDTO
      * @return
      */
+    @AuthRequired
     @PostMapping("/create")
     public Result<BarVO> create(@RequestBody @Valid CreateBarDTO createBarDTO) {
         return Result.success(barService.createBar(UserContext.getUserId(), createBarDTO));
@@ -52,6 +53,7 @@ public class BarController {
      * @param file
      * @return
      */
+    @AuthRequired
     @PostMapping("/avatar")
     public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
         return Result.success(fileService.uploadImage(file, FileService.DIR_BAR));
@@ -63,6 +65,7 @@ public class BarController {
      * @param updateBarDTO
      * @return
      */
+    @AuthRequired
     @PutMapping("/{barId}")
     public Result<BarVO> update(@PathVariable("barId") Long barId,
                                 @RequestBody @Valid UpdateBarDTO updateBarDTO) {
@@ -74,6 +77,7 @@ public class BarController {
      * @param barId
      * @return
      */
+    @AuthRequired
     @DeleteMapping("/{barId}")
     public Result<String> delete(@PathVariable("barId") Long barId) {
         barService.deleteBar(UserContext.getUserId(), barId);
@@ -81,13 +85,20 @@ public class BarController {
     }
 
     /**
-     * 分页查询贴吧
-     * @param barQueryDTO
-     * @return
+     * 分页查询贴吧。未登录可看吧和最新帖；带 token 时附带是否已关注。
      */
     @GetMapping("/page")
     public Result<List<BarVO>> page(@ModelAttribute @Valid BarQueryDTO barQueryDTO) {
         PageResult<BarVO> page = barService.pageBars(barQueryDTO);
+        return Result.success(page.getRecords(), page.getTotal());
+    }
+
+    /**
+     * 用户创建的贴吧列表（含各吧粉丝数）。
+     */
+    @GetMapping("/owned/page")
+    public Result<List<BarVO>> ownedPage(@ModelAttribute @Valid OwnedBarQueryDTO query) {
+        PageResult<BarVO> page = barService.pageOwnedBars(UserContext.getUserId(), query);
         return Result.success(page.getRecords(), page.getTotal());
     }
 

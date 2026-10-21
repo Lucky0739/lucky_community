@@ -10,10 +10,14 @@ import com.lucky.community.cache.BarPageCache;
 import com.lucky.community.constant.BarConstant;
 import com.lucky.community.dto.BarQueryDTO;
 import com.lucky.community.dto.CreateBarDTO;
+import com.lucky.community.dto.OwnedBarQueryDTO;
 import com.lucky.community.dto.UpdateBarDTO;
 import com.lucky.community.entity.Bar;
 import com.lucky.community.entity.BarManager;
 import com.lucky.community.mapper.BarManagerMapper;
+import com.lucky.common.auth.UserContext;
+import com.lucky.community.mapper.BarCountMapper;
+import com.lucky.community.mapper.BarFollowReadMapper;
 import com.lucky.community.mapper.BarMapper;
 import com.lucky.community.service.BarService;
 import com.lucky.community.service.PostService;
@@ -32,6 +36,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,6 +48,8 @@ import java.util.stream.Collectors;
 public class BarServiceImpl implements BarService {
 
     private final BarMapper barMapper;
+    private final BarCountMapper barCountMapper;
+    private final BarFollowReadMapper barFollowReadMapper;
     private final BarManagerMapper barManagerMapper;
     private final UserReadMapper userReadMapper;
     private final PermissionSupport permissionSupport;
@@ -67,13 +74,13 @@ public class BarServiceImpl implements BarService {
         bar.setName(name);
         bar.setDescription(createBarDTO.getDescription());
         bar.setOwnerUserId(userId);
-        bar.setFollowCount(0);
         bar.setAvatar(createBarDTO.getAvatar());
         // 默认为1（正常状态）
         bar.setStatus(Bar.STATUS_NORMAL);
         try {
             // 新增插入数据库
             barMapper.insert(bar);
+            barCountMapper.insertZero(bar.getId());
         } catch (DuplicateKeyException e) {
             // 数据库设置唯一贴吧名
             throw new BusinessException("吧名已被占用：" + name);
@@ -234,12 +241,31 @@ public class BarServiceImpl implements BarService {
             records = loadRecords(keyword, pageSize, (pageNum - 1) * pageSize, total);
         }
         attachLatestPost(records);
+        attachFollowState(records, UserContext.getUserId());
         PageResult<BarVO> result = new PageResult<>();
         result.setPageNum(pageNum);
         result.setPageSize(pageSize);
         result.setTotal(total);
         result.setRecords(records);
         return result;
+    }
+
+    private void attachFollowState(List<BarVO> records, Long viewerUserId) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        for (BarVO bar : records) {
+            bar.setFollowed(false);
+        }
+        if (viewerUserId == null) {
+            return;
+        }
+        List<Long> barIds = records.stream().map(BarVO::getBarId).toList();
+        List<Long> followedIds = barFollowReadMapper.selectFollowedBarIds(viewerUserId, barIds);
+        Set<Long> followed = followedIds == null ? Set.of() : new HashSet<>(followedIds);
+        for (BarVO bar : records) {
+            bar.setFollowed(followed.contains(bar.getBarId()));
+        }
     }
 
     /** 吧列表只挂每个吧最新一条帖。完整列表必须进吧后再查。 */
@@ -297,6 +323,38 @@ public class BarServiceImpl implements BarService {
     }
 
     @Override
+    public PageResult<BarVO> pageOwnedBars(Long viewerId, OwnedBarQueryDTO query) {
+        Long ownerId = query.getUserId() == null ? viewerId : query.getUserId();
+        if (ownerId == null) {
+            throw new BusinessException("未登录，请先登录");
+        }
+        if (userReadMapper.selectById(ownerId) == null) {
+            throw new BusinessException("用户不存在");
+        }
+        int pageNum = query.getPageNum() == null ? 1 : query.getPageNum();
+        int pageSize = query.getPageSize() == null ? 10 : Math.min(query.getPageSize(), 50);
+        int offset = (pageNum - 1) * pageSize;
+        long total = barMapper.countByOwnerUserId(ownerId);
+        if (total == 0 || offset >= total) {
+            PageResult<BarVO> empty = new PageResult<>();
+            empty.setRecords(List.of());
+            empty.setTotal(total);
+            empty.setPageNum(pageNum);
+            empty.setPageSize(pageSize);
+            return empty;
+        }
+        List<Bar> bars = barMapper.selectPageByOwnerUserId(ownerId, pageSize, offset);
+        List<BarVO> records = toVOs(bars);
+        attachFollowState(records, viewerId);
+        PageResult<BarVO> result = new PageResult<>();
+        result.setRecords(records);
+        result.setTotal(total);
+        result.setPageNum(pageNum);
+        result.setPageSize(pageSize);
+        return result;
+    }
+
+    @Override
     public BarVO getBarDetail(Long barId) {
         BarVO barVO = barDetailCache.get(barId, id -> {
             Bar bar = barMapper.selectById(id);
@@ -311,6 +369,7 @@ public class BarServiceImpl implements BarService {
         if (barVO == null) {
             throw new BusinessException("贴吧不存在");
         }
+        attachFollowState(List.of(barVO), UserContext.getUserId());
         return barVO;
     }
 

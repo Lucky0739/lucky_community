@@ -26,7 +26,6 @@ CREATE TABLE community.tb_bar (
     name          varchar(64)  NOT NULL,                             -- 贴吧名称，全站唯一
     description   varchar(255) DEFAULT '',                           -- 贴吧简介
     avatar        varchar(255) DEFAULT '',                           -- 贴吧头像URL
-    follow_count  integer      NOT NULL DEFAULT 0,                   -- 关注数：关注该吧的人数
     post_count    integer      NOT NULL DEFAULT 0,                   -- 帖子数：该吧未删除的帖子数
     owner_user_id bigint,                                            -- 吧主用户ID，指向 tb_user.id
     status        integer      NOT NULL DEFAULT 1,                   -- 贴吧是否可用：1正常（可发帖、可出现在列表），0停用
@@ -39,7 +38,6 @@ COMMENT ON COLUMN community.tb_bar.id IS '主键，雪花ID';
 COMMENT ON COLUMN community.tb_bar.name IS '贴吧名称，全站唯一';
 COMMENT ON COLUMN community.tb_bar.description IS '贴吧简介';
 COMMENT ON COLUMN community.tb_bar.avatar IS '贴吧头像URL';
-COMMENT ON COLUMN community.tb_bar.follow_count IS '关注数：关注该吧的人数';
 COMMENT ON COLUMN community.tb_bar.post_count IS '帖子数：该吧未删除的帖子数';
 COMMENT ON COLUMN community.tb_bar.owner_user_id IS '吧主用户ID，指向 tb_user.id';
 COMMENT ON COLUMN community.tb_bar.status IS '贴吧是否可用：1正常（可发帖、可出现在列表），0停用';

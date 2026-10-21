@@ -35,4 +35,10 @@ public interface BarMapper {
 
     /** 布隆过滤器启动预热：全部已入库的吧 ID */
     List<Long> selectAllIds();
+
+    long countByOwnerUserId(@Param("ownerUserId") Long ownerUserId);
+
+    List<Bar> selectPageByOwnerUserId(@Param("ownerUserId") Long ownerUserId,
+                                      @Param("limit") int limit,
+                                      @Param("offset") int offset);
 }
