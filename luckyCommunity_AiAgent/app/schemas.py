@@ -1,22 +1,4 @@
-"""跨语言契约：Java 侧通过 HTTP 传进来的请求体，与返回的审核结论。
-
-字段形状对齐设计文档 4.4 的 RiskAssessment。
-`extra="forbid"` 有两个作用：Pydantic 生成 JSON Schema 时会带
-additionalProperties: false（结构化输出 API 的硬要求），同时防止模型多吐字段。
-
-# 模型输出为什么有 Raw / Structured 两套
-
-同一份字段结构有两个模型，职责不同，**别把它们合并**：
-
-- `Raw*`：字段全部可选、类型全宽松。只用在「拿到什么算什么」的兜底解析上
-  （`extract_json` + `model_validate`）。字段一旦设成必填，模型少吐一个键就会
-  抛 ValidationError，把一次本可抢救的审核整个废掉。
-- `Structured*`：字段**全部必填**并带 description，只喂给
-  `with_structured_output` 生成 tool schema。
-
-`Structured*` 之所以必须必填：tool schema 里没有 required 的字段，模型会理直气壮
-地返回 `{}`，然后每次都走 `normalize()` 的兜底降级，等于白调一次昂贵模型。
-`Structured*` 继承自 `Raw*`，所以 `normalize()` 原样接得住，不需要额外转换。
+"""跨语言契约：Java 侧通过 HTTP 传进来的请求体，与返回的审核结论
 """
 
 from enum import Enum
@@ -282,6 +264,48 @@ class GovernanceResponse(BaseModel):
     degraded: bool = False
     degraded_reasons: list[str] = Field(default_factory=list)
     degrade_reason: str | None = None
+    # 本次是否成功把帖子写进向量库。Java 侧据此回写 tb_post.embed_status：
+    # True→成功，False→失败并进入重试。分析结论与向量写入互不影响。
+    vector_written: bool = False
     model_version: str = ""
     latency_ms: int = 0
     token_cost: int = 0
+
+
+class ComposeRequest(BaseModel):
+    """Java 侧发帖起草的入参。图片由调用方先校验为本站帖子图。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: int = Field(description="发帖用户ID，用来读取该用户历史帖子对齐口吻")
+    image_urls: list[str] = Field(default_factory=list, description="本次上传的图片URL")
+
+
+class ComposeResponse(BaseModel):
+    """发帖起草结果。不落库，由用户在客户端确认后再走发帖接口。
+
+    `degraded=True` 表示没能写出可用草稿（缺模型凭据 / 图片都不可用 /
+    模型调用或解析失败）。此时 `title` 与 `content` 均为空串，
+    `degrade_reason` 说明原因；调用方不应把空草稿当成「写好了」交给用户。
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = ""
+    content: str = ""
+    style_samples: int = 0
+    image_count: int = 0
+    degraded: bool = False
+    degrade_reason: str | None = None
+    model_version: str = ""
+    latency_ms: int = 0
+    token_cost: int = 0
+
+
+class ComposeDraft(BaseModel):
+    """起草模型的结构化输出。只描述图片里看得到的内容，不编造图片外的事实。"""
+
+    model_config = ConfigDict(extra="forbid", title="submit_compose_draft")
+
+    title: str = Field(description="帖子标题，不超过 64 字")
+    content: str = Field(description="帖子正文，不超过 500 字，只写图片里看得到的内容")
