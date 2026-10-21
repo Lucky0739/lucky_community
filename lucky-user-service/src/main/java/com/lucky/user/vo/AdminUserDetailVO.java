@@ -40,9 +40,6 @@ public class AdminUserDetailVO {
     /** 关注的人的数量 */
     private Integer followee;
 
-    /** 获赞数 */
-    private Integer likeCount;
-
     /** 性别：0男，1女 */
     private Integer gender;
 

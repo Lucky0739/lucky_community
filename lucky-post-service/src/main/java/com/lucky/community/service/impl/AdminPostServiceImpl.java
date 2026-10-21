@@ -107,7 +107,8 @@ public class AdminPostServiceImpl implements AdminPostService {
             runAfterCommit(() -> aiModerationService.deleteVector(post.getId()));
         }
         // 处置会改变可见性：删帖/封禁 → 不可见（撤索引）。未处置/警告不改变 AI 的判定，
-        // 所以不会让风险帖重新可见 —— 可见性只由 risk_level 是不是「无风险」决定。
+        // 所以不会让风险帖重新可见 —— 可见性要求 risk_level 为「无风险」
+        // 且 analysis_status 仍为成功（改帖会重置状态）。
         // emit 内部现算，这里不用分辨是哪种
         runAfterCommit(() -> postIndexEmitter.emit(post.getId(), null));
         runAfterCommit(() -> postDetailCache.evict(post.getId()));

@@ -114,7 +114,6 @@ public class AdminUserServiceImpl implements AdminUserService {
             adminUserDetailVO.setIntroduce(userInfo.getIntroduce());
             adminUserDetailVO.setFans(userInfo.getFans());
             adminUserDetailVO.setFollowee(userInfo.getFollowee());
-            adminUserDetailVO.setLikeCount(userInfo.getLikeCount());
             adminUserDetailVO.setGender(userInfo.getGender());
             adminUserDetailVO.setBirthday(userInfo.getBirthday());
         }
