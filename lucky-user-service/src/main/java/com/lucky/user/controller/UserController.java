@@ -14,6 +14,7 @@ import com.lucky.user.dto.UpdateProfileDTO;
 import com.lucky.user.service.UserService;
 import com.lucky.user.api.vo.UserBriefVO;
 import com.lucky.user.vo.LoginVO;
+import com.lucky.user.vo.UserProfileVO;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
@@ -82,6 +83,14 @@ public class UserController {
         authService.logout(accessToken, refreshToken);
         RefreshCookieUtil.clear(response, cookieSecure);
         return Result.success();
+    }
+
+    /**
+     * 个人主页：昵称、头像、简介、城市和关注/粉丝。不要求登录，不含手机号。
+     */
+    @GetMapping("/profile/{userId}")
+    public Result<UserProfileVO> profile(@PathVariable("userId") Long userId) {
+        return Result.success(userService.getProfile(userId));
     }
 
     /**
