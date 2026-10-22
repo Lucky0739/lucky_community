@@ -57,13 +57,21 @@
         </foreach>
     </select>
 
+    <!-- 可见性由「结论无风险」和「分析状态成功」共同决定。
+         改帖会把 analysis_status 重置为 0；只看 risk_level 会沿用旧结论放行新正文 -->
     <select id="countPubliclyVisible" resultType="long">
         SELECT COUNT(*)
-        FROM tb_post_analysis
-        WHERE post_id = #{postId}
-          AND (
-            handler_action IN ('未处置', '警告')
-            OR (risk_level = '无风险' AND handler_action IS NULL)
-          )
+        FROM tb_post_analysis a
+        INNER JOIN tb_post p ON p.id = a.post_id
+        WHERE a.post_id = #{postId}
+          AND a.risk_level = '无风险'
+          AND p.analysis_status = 2
+          AND p.deleted = 0
     </select>
+
+    <!-- 正文变更后旧结论立即作废：risk_level 还留着的话，任何只按 risk_level
+         判断的读取方都会把新正文当成已审内容 -->
+    <delete id="deleteByPostId">
+        DELETE FROM tb_post_analysis WHERE post_id = #{postId}
+    </delete>
 </mapper>

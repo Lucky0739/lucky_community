@@ -1,6 +1,7 @@
 package com.lucky.community.mapper;
 
 import com.lucky.community.entity.Post;
+import com.lucky.community.support.entity.BarPostCountRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,7 +15,13 @@ public interface PostMapper {
 
     Post selectById(@Param("id") Long id);
 
+    /** 审核结果回写前锁定帖子行，和改帖事务串行化，见 AiModerationService */
+    Post selectByIdForUpdate(@Param("id") Long id);
+
     int updateContent(Post post);
+
+    /** 正文投影到 KV 成功后回写 Cassandra 主键 */
+    int updateContentUuid(@Param("postId") Long postId, @Param("contentUuid") String contentUuid);
 
     int resetAnalysisOnEdit(@Param("id") Long id);
 
@@ -45,13 +52,39 @@ public interface PostMapper {
     List<Post> selectApprovedFeed(@Param("barId") Long barId,
                                   @Param("userId") Long userId,
                                   @Param("lastId") Long lastId,
+                                  @Param("lastScore") Long lastScore,
+                                  @Param("likeWeight") int likeWeight,
+                                  @Param("favoriteWeight") int favoriteWeight,
                                   @Param("limit") int limit);
 
+    /**
+     * 作者看自己主页：含审核中/审核失败等未对外公开的帖，仍排除 deleted。
+     */
+    List<Post> selectAuthorFeed(@Param("barId") Long barId,
+                                @Param("userId") Long userId,
+                                @Param("lastId") Long lastId,
+                                @Param("lastScore") Long lastScore,
+                                @Param("likeWeight") int likeWeight,
+                                @Param("favoriteWeight") int favoriteWeight,
+                                @Param("limit") int limit);
+
     List<Post> selectApprovedRecent(@Param("limit") int limit);
+
+    /**
+     * 按 id 升序翻页取「公开可见」的帖子，供索引全量重建用。
+     * 用 keyset（{@code id > lastId}）而不是 OFFSET：重建是边扫边投递，OFFSET 会越翻越慢。
+     */
+    List<Post> selectApprovedAfterId(@Param("lastId") Long lastId, @Param("limit") int limit);
 
     List<Long> selectAllIds();
 
     List<Post> selectByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 批量取公开可见的帖子。相似帖是历史 AI 结论，
+     * 读取时必须重新过一遍可见性，过滤已删除/重新审核/未通过的帖。
+     */
+    List<Post> selectApprovedByIds(@Param("ids") List<Long> ids);
 
     long countAdminPage(@Param("barId") Long barId,
                         @Param("pending") Boolean pending,
@@ -64,4 +97,8 @@ public interface PostMapper {
                                @Param("offset") int offset);
 
     List<Post> selectLatestApprovedByBarIds(@Param("barIds") List<Long> barIds);
+
+    long countNotDeletedByBarId(@Param("barId") Long barId);
+
+    List<BarPostCountRow> countNotDeletedByBarIds(@Param("barIds") List<Long> barIds);
 }

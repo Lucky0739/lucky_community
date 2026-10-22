@@ -2,6 +2,7 @@ package com.lucky.search.mq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lucky.common.constant.PostIndexMqConstant;
+import com.lucky.common.mq.RocketMqNameServer;
 import com.lucky.common.mq.PostIndexMessage;
 import com.lucky.search.service.PostIndexService;
 import jakarta.annotation.PreDestroy;
@@ -42,7 +43,7 @@ public class PostIndexConsumer {
     @Bean
     public DefaultMQPushConsumer postIndexPushConsumer() throws Exception {
         consumer = new DefaultMQPushConsumer(PostIndexMqConstant.MQ_CONSUMER_GROUP);
-        consumer.setNamesrvAddr(namesrvAddr);
+        RocketMqNameServer.apply(consumer, namesrvAddr);
         consumer.subscribe(PostIndexMqConstant.MQ_TOPIC, PostIndexMqConstant.MQ_TAG);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setMessageModel(MessageModel.CLUSTERING);

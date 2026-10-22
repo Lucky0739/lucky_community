@@ -5,13 +5,17 @@ import com.lucky.common.auth.UserContext;
 import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.file.FileService;
 import com.lucky.common.vo.PageResult;
+import com.lucky.community.ai.PostImageDraftService;
 import com.lucky.community.dto.CreatePostDTO;
 import com.lucky.community.dto.PostFeedQueryDTO;
+import com.lucky.community.dto.PostImageDraftDTO;
 import com.lucky.community.dto.UpdatePostDTO;
 import com.lucky.community.service.PostService;
 import com.lucky.community.vo.PageVO;
 import com.lucky.community.vo.PostBaseVO;
 import com.lucky.community.vo.PostDetailVO;
+import com.lucky.community.vo.PostImageDraftVO;
+import com.lucky.community.vo.PostModerationStatusVO;
 import com.lucky.community.vo.PostSummaryVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +32,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
- * 鉴权<b>逐个方法标注</b>，类上不再统一挂 {@code @AuthRequired}：
+ * 帖子模块
  */
 @Slf4j
 @RestController
@@ -39,6 +45,7 @@ public class PostController {
 
     private final PostService postService;
     private final FileService fileService;
+    private final PostImageDraftService postImageDraftService;
 
     /**
      * 创建帖子
@@ -88,6 +95,29 @@ public class PostController {
     }
 
     /**
+     * 根据已上传图片生成标题和正文。只建议内容，不创建帖子。
+     */
+    @AuthRequired
+    @PostMapping("/draft")
+    public Result<PostImageDraftVO> draft(@RequestBody @Valid PostImageDraftDTO dto) {
+        return Result.success(postImageDraftService.draft(dto.getImageUrls()));
+    }
+
+    /** 帖子列表 */
+    @GetMapping("/feed")
+    public Result<PageVO<PostSummaryVO>> feed(@ModelAttribute @Valid PostFeedQueryDTO query) {
+        return Result.success(postService.feedPosts(query));
+    }
+
+
+    /** 全站最近可见帖，首页发现流 */
+    @GetMapping("/recent")
+    public Result<List<PostSummaryVO>> recent(@RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+        return Result.success(postService.listRecentVisible(pageSize));
+    }
+
+
+    /**
      * 查看帖子详情
      * @param postId
      * @return
@@ -95,12 +125,16 @@ public class PostController {
     @AuthRequired
     @GetMapping("/{postId}")
     public Result<PostDetailVO> detail(@PathVariable("postId") Long postId) {
-        return Result.success(postService.getDetail(postId));
+        return Result.success(postService.getDetail(postId, UserContext.getUserId()));
     }
 
-    /** 帖子列表 */
-    @GetMapping("/feed")
-    public Result<PageVO<PostSummaryVO>> feed(@ModelAttribute @Valid PostFeedQueryDTO query) {
-        return Result.success(postService.feedPosts(query));
+    /**
+     * 作者轮询自己帖子的 AI 审核进度。
+     * 非作者或帖子不存在时 data=null，前端据此停止轮询，不泄露帖子是否存在。
+     */
+    @AuthRequired
+    @GetMapping("/{postId}/moderation-status")
+    public Result<PostModerationStatusVO> moderationStatus(@PathVariable("postId") Long postId) {
+        return Result.success(postService.getModerationStatus(postId, UserContext.getUserId()));
     }
 }

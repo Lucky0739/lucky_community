@@ -33,4 +33,7 @@ public class Post {
     private LocalDateTime analysisTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+
+    /** 贴吧列表排序用，不是 tb_post 的列。点赞权重 1，收藏权重 2。 */
+    private Long heatScore;
 }

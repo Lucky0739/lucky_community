@@ -4,20 +4,30 @@
 <mapper namespace="com.lucky.community.mapper.PostMapper">
 
     <sql id="PostColumns">
-        id, bar_id, user_id, title, content_preview, content_uuid, cover_image, image_count, deleted,
+        id, bar_id, user_id, title, content_preview, content_uuid, cover_image, image_count, visibility_scope, deleted,
         event_status, embed_status, analysis_status, analysis_retry_count, analysis_time,
         create_time, update_time
     </sql>
 
+    <!-- 和 tb_post_count 联表时，create_time / update_time 两边都有，必须带表名 -->
+    <sql id="QualifiedPostColumns">
+        tb_post.id, tb_post.bar_id, tb_post.user_id, tb_post.title, tb_post.content_preview, tb_post.content_uuid,
+        tb_post.cover_image, tb_post.image_count, tb_post.visibility_scope, tb_post.deleted,
+        tb_post.event_status, tb_post.embed_status, tb_post.analysis_status, tb_post.analysis_retry_count, tb_post.analysis_time,
+        tb_post.create_time, tb_post.update_time
+    </sql>
+
+    <!-- 只有 AI 判定无风险、且分析状态仍为「成功」的帖才对外可见。
+         analysis_status 必须一起查：改帖会把它重置为 0，而旧结论行可能还没被新结论覆盖，
+         只看 risk_level 会让编辑后的帖子继续公开（审核绕过）。
+         注意是 EXISTS：分析结果还没写入的帖同样查不到 -->
     <sql id="ApprovedExists">
         EXISTS (
             SELECT 1 FROM tb_post_analysis a
             WHERE a.post_id = tb_post.id
-              AND (
-                a.handler_action IN ('未处置', '警告')
-                OR (a.risk_level = '无风险' AND a.handler_action IS NULL)
-              )
+              AND a.risk_level = '无风险'
         )
+          AND tb_post.analysis_status = 2
     </sql>
 
     <insert id="insert">
@@ -35,6 +45,15 @@
         WHERE id = #{id} AND deleted = 0
     </select>
 
+    <!-- 审核结果回写前锁住帖子行，和改帖事务串行化：拿到锁后再比对正文，
+         避免「比对通过 → 用户改帖 → 旧结论落库」的竞态 -->
+    <select id="selectByIdForUpdate" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE id = #{id} AND deleted = 0
+        FOR UPDATE
+    </select>
+
     <!-- 正文是 upsert 到同一个 Cassandra 主键，所以这里不动 content_uuid -->
     <update id="updateContent">
         UPDATE tb_post
@@ -44,6 +63,14 @@
             image_count = #{imageCount},
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateContentUuid">
+        UPDATE tb_post
+        SET content_uuid = #{contentUuid},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{postId}
+          AND deleted = 0
     </update>
 
     <update id="resetAnalysisOnEdit">
@@ -100,21 +127,93 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
+    <!-- 贴吧内热度：点赞×1 + 收藏×2。计数还没刷进 tb_post_count 时按 0。 -->
+    <sql id="HeatScore">
+        (COALESCE(tb_post_count.like_count, 0) * #{likeWeight}
+            + COALESCE(tb_post_count.favorite_count, 0) * #{favoriteWeight})
+    </sql>
+
     <select id="selectApprovedFeed" resultType="com.lucky.community.entity.Post">
+        <choose>
+            <when test="barId != null">
+                SELECT <include refid="QualifiedPostColumns"/>,
+                       <include refid="HeatScore"/> AS heat_score
+                FROM tb_post
+                LEFT JOIN tb_post_count ON tb_post_count.post_id = tb_post.id
+                WHERE tb_post.deleted = 0
+                  AND <include refid="ApprovedExists"/>
+                  AND tb_post.bar_id = #{barId}
+                <if test="userId != null">
+                    AND tb_post.user_id = #{userId}
+                </if>
+                <if test="lastId != null and lastScore != null">
+                    AND (
+                        <include refid="HeatScore"/> &lt; #{lastScore}
+                        OR (<include refid="HeatScore"/> = #{lastScore} AND tb_post.id &lt; #{lastId})
+                    )
+                </if>
+                ORDER BY heat_score DESC, tb_post.id DESC
+                LIMIT #{limit}
+            </when>
+            <otherwise>
+                SELECT <include refid="PostColumns"/>
+                FROM tb_post
+                WHERE deleted = 0
+                  AND <include refid="ApprovedExists"/>
+                <if test="userId != null">
+                    AND user_id = #{userId}
+                </if>
+                <if test="lastId != null">
+                    AND id &lt; #{lastId}
+                </if>
+                ORDER BY id DESC
+                LIMIT #{limit}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 作者本人主页：不按 ApprovedExists 过滤，AI 未跑完/失败也展示 -->
+    <select id="selectAuthorFeed" resultType="com.lucky.community.entity.Post">
+        <choose>
+            <when test="barId != null">
+                SELECT <include refid="QualifiedPostColumns"/>,
+                       <include refid="HeatScore"/> AS heat_score
+                FROM tb_post
+                LEFT JOIN tb_post_count ON tb_post_count.post_id = tb_post.id
+                WHERE tb_post.deleted = 0
+                  AND tb_post.bar_id = #{barId}
+                  AND tb_post.user_id = #{userId}
+                <if test="lastId != null and lastScore != null">
+                    AND (
+                        <include refid="HeatScore"/> &lt; #{lastScore}
+                        OR (<include refid="HeatScore"/> = #{lastScore} AND tb_post.id &lt; #{lastId})
+                    )
+                </if>
+                ORDER BY heat_score DESC, tb_post.id DESC
+                LIMIT #{limit}
+            </when>
+            <otherwise>
+                SELECT <include refid="PostColumns"/>
+                FROM tb_post
+                WHERE deleted = 0
+                  AND user_id = #{userId}
+                <if test="lastId != null">
+                    AND id &lt; #{lastId}
+                </if>
+                ORDER BY id DESC
+                LIMIT #{limit}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 索引全量重建：keyset 翻页，只取公开可见的帖 -->
+    <select id="selectApprovedAfterId" resultType="com.lucky.community.entity.Post">
         SELECT <include refid="PostColumns"/>
         FROM tb_post
         WHERE deleted = 0
           AND <include refid="ApprovedExists"/>
-        <if test="barId != null">
-            AND bar_id = #{barId}
-        </if>
-        <if test="userId != null">
-            AND user_id = #{userId}
-        </if>
-        <if test="lastId != null">
-            AND id &lt; #{lastId}
-        </if>
-        ORDER BY id DESC
+          AND id &gt; #{lastId}
+        ORDER BY id
         LIMIT #{limit}
     </select>
 
@@ -127,6 +226,25 @@
         LIMIT #{limit}
     </select>
 
+    <select id="countNotDeletedByBarId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_post
+        WHERE deleted = 0
+          AND bar_id = #{barId}
+    </select>
+
+    <select id="countNotDeletedByBarIds"
+            resultType="com.lucky.community.support.entity.BarPostCountRow">
+        SELECT bar_id AS barId, COUNT(*) AS postCount
+        FROM tb_post
+        WHERE deleted = 0
+          AND bar_id IN
+        <foreach collection="barIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        GROUP BY bar_id
+    </select>
+
     <select id="selectAllIds" resultType="long">
         SELECT id FROM tb_post WHERE deleted = 0
     </select>
@@ -135,6 +253,18 @@
         SELECT <include refid="PostColumns"/>
         FROM tb_post
         WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 相似帖摘要用：AI 结论可能已经过时，读取时重新按可见性过滤 -->
+    <select id="selectApprovedByIds" resultType="com.lucky.community.entity.Post">
+        SELECT <include refid="PostColumns"/>
+        FROM tb_post
+        WHERE deleted = 0
+          AND <include refid="ApprovedExists"/>
           AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}

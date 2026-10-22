@@ -1,5 +1,6 @@
 package com.lucky.community.vo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,15 @@ public class PostSummaryVO {
 
     /** 贴吧名 */
     private String barName;
+
+    /** 贴吧粉丝数，来自 tb_bar_count.fan_count */
+    private Integer barFollowCount;
+
+    /** 该吧帖子数，来自 tb_bar.post_count */
+    private Integer barPostCount;
+
+    /** 当前用户是否已关注该吧；未登录为 false */
+    private Boolean barFollowed;
 
     /** 作者user_id */
     private Long userId;
@@ -57,4 +67,8 @@ public class PostSummaryVO {
 
     /** 创建时间 */
     private LocalDateTime createTime;
+
+    /** 贴吧流翻页用，不返回给前端。热度 = 点赞×1 + 收藏×2 */
+    @JsonIgnore
+    private Long heatScore;
 }

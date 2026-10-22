@@ -20,4 +20,7 @@ public interface PostAnalysisMapper {
     List<PostAnalysis> selectByPostIds(@Param("postIds") List<Long> postIds);
 
     long countPubliclyVisible(@Param("postId") Long postId);
+
+    /** 正文变更后作废旧结论，等重新审核写入新行 */
+    int deleteByPostId(@Param("postId") Long postId);
 }

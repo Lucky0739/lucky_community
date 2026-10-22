@@ -17,7 +17,7 @@ import java.util.function.Supplier;
  * <h3>缓存的为什么是「组装好的 VO」而不是「ID 列表」</h3>
  * 只缓存 ID 的话，回源仍要发 2 条批量关联查询（贴吧 / 作者），省下的只有主查询。
  * 而列表页的成本大头恰恰在那几条关联查询上，缓存 VO 才能把它们一起省掉，
- * 只剩 {@code fillSummaryInteraction} 的 5 次 Redis 调用。
+ * 只剩 {@code enrichSummaryRows}（互动 + 吧统计/关注态）的 Redis 等调用。
  *
  * <h3>为什么可以不广播失效</h3>
  * TTL 只有秒级，多实例各自持有一份、靠自然过期收敛就够了。
@@ -67,8 +67,9 @@ public class PostFeedCache {
      * 每个用户的浏览都会产生一份独立缓存，key 空间立刻爆炸且命中率趋近于零。
      * 这与 {@code PostFeedQueryDTO.userId}（作者筛选，属于查询参数）是两回事，别混淆。
      */
-    public static String filterKey(Long barId, Long userId, int size) {
-        return (barId == null ? "" : barId) + ":" + (userId == null ? "" : userId) + ":" + size;
+    public static String filterKey(Long barId, Long userId, int size, boolean authorSelfView) {
+        return (barId == null ? "" : barId) + ":" + (userId == null ? "" : userId) + ":" + size
+                + (authorSelfView ? ":mine" : "");
     }
 
     /** 逐条深拷贝。列表本身也新建，保证缓存里那份的双层结构都不被触碰 */

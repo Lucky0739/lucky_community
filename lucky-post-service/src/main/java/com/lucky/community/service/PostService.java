@@ -6,6 +6,7 @@ import com.lucky.community.dto.UpdatePostDTO;
 import com.lucky.community.vo.PageVO;
 import com.lucky.community.vo.PostBaseVO;
 import com.lucky.community.vo.PostDetailVO;
+import com.lucky.community.vo.PostModerationStatusVO;
 import com.lucky.community.vo.PostSummaryVO;
 
 import java.util.List;
@@ -21,7 +22,12 @@ public interface PostService {
 
     void deletePost(Long operatorId, Long postId);
 
-    PostDetailVO getDetail(Long postId);
+    PostDetailVO getDetail(Long postId, Long viewerId);
+
+    /**
+     * 作者轮询帖子审核进度。非作者或帖子不存在返回 null。
+     */
+    PostModerationStatusVO getModerationStatus(Long postId, Long viewerId);
 
     PageVO<PostSummaryVO> feedPosts(PostFeedQueryDTO query);
 
@@ -29,4 +35,7 @@ public interface PostService {
 
     /** 每个吧最新一条可见帖，供吧列表展示。 */
     Map<Long, PostSummaryVO> latestVisibleByBarIds(List<Long> barIds);
+
+    /** 全站最近可见帖，供首页发现流 */
+    List<PostSummaryVO> listRecentVisible(int limit);
 }
