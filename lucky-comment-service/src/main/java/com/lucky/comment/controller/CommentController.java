@@ -4,10 +4,12 @@ import com.lucky.comment.dto.CommentLikeDTO;
 import com.lucky.comment.dto.DeleteCommentDTO;
 import com.lucky.comment.dto.FindCommentPageListDTO;
 import com.lucky.comment.dto.FindCommentReplyPageListDTO;
+import com.lucky.comment.dto.FindUserCommentPageDTO;
 import com.lucky.comment.dto.PublishCommentDTO;
 import com.lucky.comment.service.CommentService;
 import com.lucky.common.auth.UserContext;
 import com.lucky.comment.vo.FindCommentPageListVO;
+import com.lucky.comment.vo.UserCommentItemVO;
 import com.lucky.common.Result;
 import com.lucky.common.auth.annotation.AuthRequired;
 import com.lucky.common.file.FileService;
@@ -46,6 +48,15 @@ public class CommentController {
             @RequestBody @Valid FindCommentReplyPageListDTO findCommentReplyPageListDTO) {
         return Result.success(commentService.findReplyPageList(
                 findCommentReplyPageListDTO, UserContext.getUserId()));
+    }
+
+    /**
+     * 用户回贴/评论动态（个人主页「回贴」Tab）。
+     */
+    @AuthRequired
+    @PostMapping("/user/page")
+    public Result<PageResult<UserCommentItemVO>> userPage(@RequestBody @Valid FindUserCommentPageDTO dto) {
+        return Result.success(commentService.findUserCommentPage(dto, UserContext.getUserId()));
     }
 
     /**
