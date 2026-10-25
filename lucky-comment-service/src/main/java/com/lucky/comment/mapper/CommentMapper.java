@@ -24,9 +24,15 @@ public interface CommentMapper {
 
     long countRootComments(@Param("postId") Long postId);
 
-    List<Comment> selectPageList(@Param("postId") Long postId,
-                                 @Param("offset") long offset,
-                                 @Param("limit") int limit);
+    /**
+     * 一级评论 keyset 分页，排序 {@code is_top DESC, create_time ASC, id ASC}。
+     * 首页四个 anchor 参数均为 null。
+     */
+    List<Comment> selectRootPageKeyset(@Param("postId") Long postId,
+                                       @Param("lastIsTop") Integer lastIsTop,
+                                       @Param("lastCreateTime") java.time.LocalDateTime lastCreateTime,
+                                       @Param("lastId") Long lastId,
+                                       @Param("limit") int limit);
 
     List<Comment> selectByIds(@Param("ids") List<Long> ids);
 
@@ -34,9 +40,11 @@ public interface CommentMapper {
 
     long countRepliesByRoot(@Param("rootCommentId") Long rootCommentId);
 
-    List<Comment> selectReplyPageList(@Param("rootCommentId") Long rootCommentId,
-                                      @Param("offset") long offset,
-                                      @Param("limit") int limit);
+    /** 二级回复 keyset 分页，排序 {@code create_time ASC, id ASC}。首页 anchor 为 null。 */
+    List<Comment> selectReplyPageKeyset(@Param("rootCommentId") Long rootCommentId,
+                                        @Param("lastCreateTime") java.time.LocalDateTime lastCreateTime,
+                                        @Param("lastId") Long lastId,
+                                        @Param("limit") int limit);
 
     int softDeleteById(@Param("id") Long id, @Param("userId") Long userId);
 
@@ -52,4 +60,12 @@ public interface CommentMapper {
     List<Long> softDeleteByIds(@Param("ids") List<Long> ids);
 
     int updateLikeTotal(@Param("commentId") Long commentId, @Param("likeTotal") long likeTotal);
+
+    long countByUserId(@Param("userId") Long userId);
+
+    /** 用户评论 keyset 分页，排序 {@code create_time DESC, id DESC}。首页 anchor 为 null。 */
+    List<Comment> selectUserCommentKeyset(@Param("userId") Long userId,
+                                          @Param("lastCreateTime") java.time.LocalDateTime lastCreateTime,
+                                          @Param("lastId") Long lastId,
+                                          @Param("limit") int limit);
 }
