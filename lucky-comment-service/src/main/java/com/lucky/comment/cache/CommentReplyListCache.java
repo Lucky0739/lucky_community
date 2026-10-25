@@ -28,9 +28,8 @@ public class CommentReplyListCache {
         return Boolean.TRUE.equals(stringRedisTemplate.hasKey(listKey(rootCommentId)));
     }
 
-    public List<Long> rangeReplyIds(Long rootCommentId, long offset, long pageSize) {
-        Set<String> ids = stringRedisTemplate.opsForZSet().rangeByScore(
-                listKey(rootCommentId), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, offset, pageSize);
+    public List<Long> rangeReplyIds(Long rootCommentId, long pageSize) {
+        Set<String> ids = stringRedisTemplate.opsForZSet().range(listKey(rootCommentId), 0, pageSize - 1);
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }

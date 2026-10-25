@@ -50,10 +50,9 @@ public class CommentListCache {
         return Boolean.TRUE.equals(stringRedisTemplate.hasKey(zsetKey(postId)));
     }
 
-    /** 按发布时间升序取一页评论 ID；返回不足 requested 条说明缓存没覆盖 */
-    public List<Long> rangeCommentIds(Long postId, long offset, long pageSize) {
-        Set<String> ids = stringRedisTemplate.opsForZSet().rangeByScore(
-                zsetKey(postId), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, offset, pageSize);
+    /** 首页：按发布时间升序取前 pageSize 条评论 ID；返回不足说明缓存没覆盖 */
+    public List<Long> rangeCommentIds(Long postId, long pageSize) {
+        Set<String> ids = stringRedisTemplate.opsForZSet().range(zsetKey(postId), 0, pageSize - 1);
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
