@@ -1,11 +1,13 @@
 package com.lucky.comment.dto;
 
-import jakarta.validation.constraints.Min;
+import com.lucky.common.dto.PageQueryDTO;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class FindCommentReplyPageListDTO {
+@EqualsAndHashCode(callSuper = true)
+public class FindCommentReplyPageListDTO extends PageQueryDTO {
 
     @NotNull(message = "帖子ID不能为空")
     private Long postId;
@@ -13,8 +15,4 @@ public class FindCommentReplyPageListDTO {
     /** 一级评论 ID */
     @NotNull(message = "根评论ID不能为空")
     private Long rootCommentId;
-
-    /** 页码，从 1 开始。为空按 1 处理，见 CommentServiceImpl#findReplyPageList */
-    @Min(value = 1, message = "页码不能小于1")
-    private Integer pageNo = 1;
 }

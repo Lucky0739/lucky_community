@@ -1,20 +1,18 @@
 package com.lucky.comment.dto;
 
-import jakarta.validation.constraints.Min;
+import com.lucky.common.dto.PageQueryDTO;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
- * 分页查询某篇帖子的评论列表。
+ * 游标分页查询某篇帖子的一级评论列表。
  */
 @Data
-public class FindCommentPageListDTO {
+@EqualsAndHashCode(callSuper = true)
+public class FindCommentPageListDTO extends PageQueryDTO {
 
     /** 帖子 ID */
     @NotNull(message = "帖子ID不能为空")
     private Long postId;
-
-    /** 页码，从 1 开始。为空按 1 处理，见 CommentServiceImpl#findCommentPageList */
-    @Min(value = 1, message = "页码不能小于1")
-    private Integer pageNo = 1;
 }
