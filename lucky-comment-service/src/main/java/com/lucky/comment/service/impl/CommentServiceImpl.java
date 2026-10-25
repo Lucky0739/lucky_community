@@ -11,8 +11,10 @@ import com.lucky.comment.constant.CommentLikeMqConstant;
 import com.lucky.comment.constant.CommentMqConstant;
 import com.lucky.comment.dto.FindCommentPageListDTO;
 import com.lucky.comment.dto.FindCommentReplyPageListDTO;
+import com.lucky.comment.dto.FindUserCommentPageDTO;
 import com.lucky.comment.dto.PublishCommentDTO;
 import com.lucky.comment.entity.Comment;
+import com.lucky.comment.entity.PostCommentSummary;
 import com.lucky.comment.entity.PostRef;
 import com.lucky.comment.enums.CommentLevelEnum;
 import com.lucky.comment.mapper.CommentLikeMapper;
@@ -27,8 +29,10 @@ import com.lucky.comment.rpc.KeyValueRpcService;
 import com.lucky.comment.rpc.UserRpcService;
 import com.lucky.comment.service.CommentService;
 import com.lucky.comment.vo.FindCommentPageListVO;
+import com.lucky.comment.vo.UserCommentItemVO;
 import com.lucky.common.auth.UserContext;
 import com.lucky.common.constant.CommentConstant;
+import com.lucky.common.dto.PageQueryDTO;
 import com.lucky.common.exception.BusinessException;
 import com.lucky.common.vo.PageResult;
 import com.lucky.kv.api.dto.FindCommentContentDTO;
@@ -47,6 +51,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -102,49 +107,51 @@ public class CommentServiceImpl implements CommentService {
     public PageResult<FindCommentPageListVO> findCommentPageList(FindCommentPageListDTO findCommentPageListDTO,
                                                                  Long viewerUserId) {
         Long postId = findCommentPageListDTO.getPostId();
-        int pageNo = findCommentPageListDTO.getPageNo() == null ? 1 : findCommentPageListDTO.getPageNo();
-        long offset = (long) (pageNo - 1) * PAGE_SIZE;
+        Long lastId = findCommentPageListDTO.getLastId();
+        int pageSize = resolvePageSize(findCommentPageListDTO);
 
         long total = loadCommentTotal(postId);
         if (total == 0) {
-            return new PageResult<>(List.of(), 0, pageNo, PAGE_SIZE);
+            return emptyCommentPage(pageSize);
         }
 
-        // 先在缓存里找：ZSet 按发布时间升序取这一页 ID → MGET 详情
         List<FindCommentPageListVO> records = null;
-        if (offset < CommentListCache.MAX_CACHED) {
-            records = loadFromCache(postId, offset, total, viewerUserId);
+        if (lastId == null) {
+            records = loadFromCache(postId, pageSize, total, viewerUserId);
         }
-        // 缓存没覆盖 → 回源数据库，并异步回填缓存
         if (records == null) {
-            List<Comment> oneLevel = commentMapper.selectPageList(postId, offset, PAGE_SIZE);
+            RootCommentAnchor anchor = resolveRootAnchor(postId, lastId);
+            List<Comment> oneLevel = commentMapper.selectRootPageKeyset(
+                    postId, anchor.isTop(), anchor.createTime(), anchor.id(), pageSize);
             records = buildVOs(postId, oneLevel, viewerUserId);
             cachePageAsync(postId, oneLevel, records);
             if (!commentListCache.exists(postId)) {
                 refillListCacheAsync(postId);
             }
         }
-        return decorateLikeState(records, viewerUserId, total, pageNo, PAGE_SIZE);
+        return toCommentPage(records, viewerUserId, total, pageSize);
     }
 
     @Override
     public PageResult<FindCommentPageListVO> findReplyPageList(FindCommentReplyPageListDTO dto, Long viewerUserId) {
         Long postId = dto.getPostId();
         Long rootCommentId = dto.getRootCommentId();
-        int pageNo = dto.getPageNo() == null ? 1 : dto.getPageNo();
-        long offset = (long) (pageNo - 1) * PAGE_SIZE;
+        Long lastId = dto.getLastId();
+        int pageSize = resolvePageSize(dto);
 
         long total = loadReplyTotal(rootCommentId);
         if (total == 0) {
-            return new PageResult<>(List.of(), 0, pageNo, PAGE_SIZE);
+            return emptyCommentPage(pageSize);
         }
 
         List<FindCommentPageListVO> records = null;
-        if (offset < CommentReplyListCache.MAX_CACHED) {
-            records = loadRepliesFromCache(postId, rootCommentId, offset, total, viewerUserId);
+        if (lastId == null) {
+            records = loadRepliesFromCache(postId, rootCommentId, pageSize, total, viewerUserId);
         }
         if (records == null) {
-            List<Comment> replies = commentMapper.selectReplyPageList(rootCommentId, offset, PAGE_SIZE);
+            TimeIdAnchor anchor = resolveTimeIdAnchor(lastId, rootCommentId, CommentLevelEnum.TWO.getCode());
+            List<Comment> replies = commentMapper.selectReplyPageKeyset(
+                    rootCommentId, anchor.createTime(), anchor.id(), pageSize);
             records = buildVOs(postId, replies, viewerUserId);
             Long rootId = rootCommentId;
             commentCacheExecutor.execute(() -> commentReplyListCache.syncIds(rootId, replies));
@@ -152,38 +159,242 @@ public class CommentServiceImpl implements CommentService {
             commentCacheExecutor.execute(() -> commentListCache.syncVOs(voCopy));
             if (!commentReplyListCache.exists(rootId)) {
                 commentCacheExecutor.execute(() -> commentReplyListCache.syncIds(rootId,
-                        commentMapper.selectReplyPageList(rootId, 0, CommentReplyListCache.MAX_CACHED)));
+                        loadReplyCommentsKeyset(rootId, null, CommentReplyListCache.MAX_CACHED)));
             }
         }
-        return decorateLikeState(records, viewerUserId, total, pageNo, PAGE_SIZE);
+        return toCommentPage(records, viewerUserId, total, pageSize);
     }
 
-    private PageResult<FindCommentPageListVO> decorateLikeState(List<FindCommentPageListVO> records,
-                                                                Long viewerUserId,
-                                                                long total, int pageNo, int pageSize) {
-        if (viewerUserId != null && records != null) {
-            for (FindCommentPageListVO vo : records) {
-                vo.setLiked(commentLikeCache.isLiked(viewerUserId, vo.getCommentId()));
-                Long cachedCount = commentLikeCache.readCount(vo.getCommentId());
-                if (cachedCount != null) {
-                    vo.setLikeCount(cachedCount);
-                }
-                if (vo.getFirstReplyComment() != null) {
-                    vo.getFirstReplyComment().setLiked(
-                            commentLikeCache.isLiked(viewerUserId, vo.getFirstReplyComment().getCommentId()));
+    @Override
+    public PageResult<UserCommentItemVO> findUserCommentPage(FindUserCommentPageDTO dto, Long viewerUserId) {
+        Long ownerId = dto.getUserId() == null ? viewerUserId : dto.getUserId();
+        if (ownerId == null) {
+            throw new BusinessException("未登录，请先登录");
+        }
+        List<UserBriefVO> ownerCheck = userRpcService.findByIds(List.of(ownerId));
+        if (ownerCheck == null || ownerCheck.isEmpty()) {
+            throw new BusinessException("用户不存在");
+        }
+        int pageSize = resolvePageSize(dto);
+        Long lastId = dto.getLastId();
+
+        long total = commentMapper.countByUserId(ownerId);
+        if (total == 0) {
+            return emptyUserCommentPage(pageSize);
+        }
+        TimeIdAnchor anchor = resolveUserCommentAnchor(ownerId, lastId);
+        List<Comment> rows = commentMapper.selectUserCommentKeyset(
+                ownerId, anchor.createTime(), anchor.id(), pageSize);
+        if (rows.isEmpty()) {
+            return emptyUserCommentPage(pageSize, total);
+        }
+
+        Set<Long> postIds = new HashSet<>();
+        for (Comment row : rows) {
+            if (row.getPostId() != null) {
+                postIds.add(row.getPostId());
+            }
+        }
+        Map<Long, PostCommentSummary> postById = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            List<PostCommentSummary> summaries = postReadMapper.selectSummariesByIds(new ArrayList<>(postIds));
+            if (summaries != null) {
+                for (PostCommentSummary summary : summaries) {
+                    postById.put(summary.getId(), summary);
                 }
             }
         }
-        return new PageResult<>(records, total, pageNo, pageSize);
+
+        Map<Long, List<Comment>> commentsByPost = new HashMap<>();
+        for (Comment row : rows) {
+            if (row.getPostId() != null) {
+                commentsByPost.computeIfAbsent(row.getPostId(), k -> new ArrayList<>()).add(row);
+            }
+        }
+        Map<String, String> contentByUuid = new HashMap<>();
+        for (Map.Entry<Long, List<Comment>> entry : commentsByPost.entrySet()) {
+            contentByUuid.putAll(loadContents(entry.getKey(), entry.getValue()));
+        }
+
+        Map<Long, UserBriefVO> userById = loadUsers(rows);
+        List<UserCommentItemVO> records = new ArrayList<>(rows.size());
+        for (Comment row : rows) {
+            UserCommentItemVO item = new UserCommentItemVO();
+            item.setCommentId(row.getId());
+            item.setPostId(row.getPostId());
+            PostCommentSummary post = postById.get(row.getPostId());
+            if (post != null) {
+                item.setPostTitle(post.getTitle());
+                item.setBarId(post.getBarId());
+                item.setBarName(post.getBarName());
+            }
+            item.setUserId(row.getUserId());
+            UserBriefVO author = userById.get(row.getUserId());
+            if (author != null) {
+                item.setNickName(author.getNickName());
+                item.setIcon(author.getIcon());
+            }
+            item.setLevel(row.getLevel());
+            item.setReplyCommentId(row.getReplyCommentId());
+            item.setReplyUserId(row.getReplyUserId());
+            if (row.getReplyUserId() != null && row.getReplyUserId() > CommentConstant.NONE) {
+                UserBriefVO replyUser = userById.get(row.getReplyUserId());
+                item.setReplyNickName(replyUser == null ? null : replyUser.getNickName());
+            }
+            String uuid = row.getContentUuid();
+            item.setContent(uuid == null || uuid.isBlank() ? "" : contentByUuid.getOrDefault(uuid, ""));
+            item.setImageUrl(StringUtils.hasText(row.getImageUrl()) ? row.getImageUrl() : null);
+            Long cachedLike = commentLikeCache.readCount(row.getId());
+            item.setLikeCount(cachedLike != null ? cachedLike : row.getLikeTotal());
+            item.setLiked(viewerUserId != null && commentLikeCache.isLiked(viewerUserId, row.getId()));
+            item.setCreateTime(row.getCreateTime());
+            records.add(item);
+        }
+        return toUserCommentPage(records, total, pageSize);
     }
 
-    private List<FindCommentPageListVO> loadRepliesFromCache(Long postId, Long rootCommentId, long offset,
-                                                             long total, Long viewerUserId) {
-        long expected = Math.min(PAGE_SIZE, total - offset);
+    private int resolvePageSize(PageQueryDTO dto) {
+        if (dto == null || dto.getPageSize() == null) {
+            return PAGE_SIZE;
+        }
+        return Math.min(dto.getPageSize(), PageQueryDTO.MAX_SIZE);
+    }
+
+    private PageResult<FindCommentPageListVO> emptyCommentPage(int pageSize) {
+        PageResult<FindCommentPageListVO> page = new PageResult<>(List.of(), 0);
+        page.setPageSize(pageSize);
+        page.setNextCursor(null);
+        return page;
+    }
+
+    private PageResult<UserCommentItemVO> emptyUserCommentPage(int pageSize) {
+        return emptyUserCommentPage(pageSize, 0);
+    }
+
+    private PageResult<UserCommentItemVO> emptyUserCommentPage(int pageSize, long total) {
+        PageResult<UserCommentItemVO> page = new PageResult<>(List.of(), total);
+        page.setPageSize(pageSize);
+        page.setNextCursor(null);
+        return page;
+    }
+
+    private PageResult<FindCommentPageListVO> toCommentPage(List<FindCommentPageListVO> records,
+                                                            Long viewerUserId,
+                                                            long total,
+                                                            int pageSize) {
+        decorateLikeState(records, viewerUserId);
+        PageResult<FindCommentPageListVO> page = new PageResult<>(records, total);
+        page.setPageSize(pageSize);
+        page.setNextCursor(nextCursor(records, pageSize));
+        return page;
+    }
+
+    private PageResult<UserCommentItemVO> toUserCommentPage(List<UserCommentItemVO> records,
+                                                            long total,
+                                                            int pageSize) {
+        PageResult<UserCommentItemVO> page = new PageResult<>(records, total);
+        page.setPageSize(pageSize);
+        page.setNextCursor(nextCursorFromUserItems(records, pageSize));
+        return page;
+    }
+
+    private Long nextCursor(List<FindCommentPageListVO> records, int pageSize) {
+        if (records == null || records.size() < pageSize) {
+            return null;
+        }
+        return records.get(records.size() - 1).getCommentId();
+    }
+
+    private Long nextCursorFromUserItems(List<UserCommentItemVO> records, int pageSize) {
+        if (records == null || records.size() < pageSize) {
+            return null;
+        }
+        return records.get(records.size() - 1).getCommentId();
+    }
+
+    private void decorateLikeState(List<FindCommentPageListVO> records, Long viewerUserId) {
+        if (viewerUserId == null || records == null) {
+            return;
+        }
+        for (FindCommentPageListVO vo : records) {
+            vo.setLiked(commentLikeCache.isLiked(viewerUserId, vo.getCommentId()));
+            Long cachedCount = commentLikeCache.readCount(vo.getCommentId());
+            if (cachedCount != null) {
+                vo.setLikeCount(cachedCount);
+            }
+            if (vo.getFirstReplyComment() != null) {
+                vo.getFirstReplyComment().setLiked(
+                        commentLikeCache.isLiked(viewerUserId, vo.getFirstReplyComment().getCommentId()));
+            }
+        }
+    }
+
+    private RootCommentAnchor resolveRootAnchor(Long postId, Long lastId) {
+        if (lastId == null) {
+            return RootCommentAnchor.FIRST;
+        }
+        Comment anchor = commentMapper.selectById(lastId);
+        if (anchor == null
+                || !Objects.equals(anchor.getPostId(), postId)
+                || !CommentLevelEnum.ONE.getCode().equals(anchor.getLevel())
+                || anchor.getDeleted() != null && anchor.getDeleted() != 0) {
+            throw new BusinessException("评论游标无效");
+        }
+        return new RootCommentAnchor(anchor.getIsTop(), anchor.getCreateTime(), anchor.getId());
+    }
+
+    private TimeIdAnchor resolveTimeIdAnchor(Long lastId, Long rootCommentId, Integer level) {
+        if (lastId == null) {
+            return TimeIdAnchor.FIRST;
+        }
+        Comment anchor = commentMapper.selectById(lastId);
+        if (anchor == null
+                || !Objects.equals(anchor.getParentId(), rootCommentId)
+                || !level.equals(anchor.getLevel())
+                || anchor.getDeleted() != null && anchor.getDeleted() != 0) {
+            throw new BusinessException("评论游标无效");
+        }
+        return new TimeIdAnchor(anchor.getCreateTime(), anchor.getId());
+    }
+
+    private TimeIdAnchor resolveUserCommentAnchor(Long userId, Long lastId) {
+        if (lastId == null) {
+            return TimeIdAnchor.FIRST;
+        }
+        Comment anchor = commentMapper.selectById(lastId);
+        if (anchor == null
+                || !Objects.equals(anchor.getUserId(), userId)
+                || anchor.getDeleted() != null && anchor.getDeleted() != 0) {
+            throw new BusinessException("评论游标无效");
+        }
+        return new TimeIdAnchor(anchor.getCreateTime(), anchor.getId());
+    }
+
+    private List<Comment> loadReplyCommentsKeyset(Long rootCommentId, Long lastId, int limit) {
+        TimeIdAnchor anchor = resolveTimeIdAnchor(lastId, rootCommentId, CommentLevelEnum.TWO.getCode());
+        return commentMapper.selectReplyPageKeyset(rootCommentId, anchor.createTime(), anchor.id(), limit);
+    }
+
+    private List<Comment> loadRootCommentsKeyset(Long postId, Long lastId, int limit) {
+        RootCommentAnchor anchor = resolveRootAnchor(postId, lastId);
+        return commentMapper.selectRootPageKeyset(postId, anchor.isTop(), anchor.createTime(), anchor.id(), limit);
+    }
+
+    private record RootCommentAnchor(Integer isTop, LocalDateTime createTime, Long id) {
+        static final RootCommentAnchor FIRST = new RootCommentAnchor(null, null, null);
+    }
+
+    private record TimeIdAnchor(LocalDateTime createTime, Long id) {
+        static final TimeIdAnchor FIRST = new TimeIdAnchor(null, null);
+    }
+
+    private List<FindCommentPageListVO> loadRepliesFromCache(Long postId, Long rootCommentId,
+                                                             int pageSize, long total, Long viewerUserId) {
+        long expected = Math.min(pageSize, total);
         if (expected <= 0) {
             return List.of();
         }
-        List<Long> ids = commentReplyListCache.rangeReplyIds(rootCommentId, offset, expected);
+        List<Long> ids = commentReplyListCache.rangeReplyIds(rootCommentId, expected);
         if (ids.size() < expected) {
             return null;
         }
@@ -212,12 +423,12 @@ public class CommentServiceImpl implements CommentService {
      * 从缓存取一页评论。缓存没覆盖这一页（ZSet 条数不足）时返回 null，交给调用方回源。
      * 详情已过期的个别评论，查库补齐并异步写回。
      */
-    private List<FindCommentPageListVO> loadFromCache(Long postId, long offset, long total, Long viewerUserId) {
-        long expected = Math.min(PAGE_SIZE, total - offset);       // 这一页应该有这么多条
+    private List<FindCommentPageListVO> loadFromCache(Long postId, int pageSize, long total, Long viewerUserId) {
+        long expected = Math.min(pageSize, total);
         if (expected <= 0) {
             return List.of();
         }
-        List<Long> ids = commentListCache.rangeCommentIds(postId, offset, expected);
+        List<Long> ids = commentListCache.rangeCommentIds(postId, expected);
         if (ids.size() < expected) {
             return null;
         }
@@ -247,9 +458,20 @@ public class CommentServiceImpl implements CommentService {
 
     /** 异步回填列表 ZSet：一次取最早的 MAX_CACHED 条一级评论的 ID */
     private void refillListCacheAsync(Long postId) {
-        commentCacheExecutor.execute(() ->
-                commentListCache.syncIds(postId,
-                        commentMapper.selectPageList(postId, 0, CommentListCache.MAX_CACHED)));
+        commentCacheExecutor.execute(() -> {
+            List<Comment> batch = new ArrayList<>();
+            Long cursor = null;
+            while (batch.size() < CommentListCache.MAX_CACHED) {
+                int need = CommentListCache.MAX_CACHED - batch.size();
+                List<Comment> chunk = loadRootCommentsKeyset(postId, cursor, need);
+                if (chunk.isEmpty()) {
+                    break;
+                }
+                batch.addAll(chunk);
+                cursor = chunk.get(chunk.size() - 1).getId();
+            }
+            commentListCache.syncIds(postId, batch);
+        });
     }
 
     /** 组装这一批一级评论的 VO：带首条二级回复、正文和作者 */

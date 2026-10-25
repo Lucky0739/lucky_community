@@ -2,11 +2,13 @@ package com.lucky.comment.service;
 
 import com.lucky.comment.dto.FindCommentPageListDTO;
 import com.lucky.comment.dto.FindCommentReplyPageListDTO;
+import com.lucky.comment.dto.FindUserCommentPageDTO;
 import com.lucky.comment.dto.PublishCommentDTO;
 import com.lucky.comment.entity.Comment;
 import com.lucky.comment.mq.message.DeleteCommentMessage;
 import com.lucky.comment.mq.message.PublishCommentMessage;
 import com.lucky.comment.vo.FindCommentPageListVO;
+import com.lucky.comment.vo.UserCommentItemVO;
 import com.lucky.common.vo.PageResult;
 
 import java.util.List;
@@ -22,6 +24,9 @@ public interface CommentService {
                                                             Long viewerUserId);
 
     PageResult<FindCommentPageListVO> findReplyPageList(FindCommentReplyPageListDTO dto, Long viewerUserId);
+
+    /** 用户发表的评论/回贴，按时间倒序 */
+    PageResult<UserCommentItemVO> findUserCommentPage(FindUserCommentPageDTO dto, Long viewerUserId);
 
     /** 生成评论 ID 后发消息。接口马上返回这个 ID，正文由消费端写入数据库。 */
     Long publish(PublishCommentDTO publishCommentDTO);
