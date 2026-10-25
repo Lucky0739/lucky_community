@@ -2,6 +2,7 @@ package com.lucky.comment.mq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
+import com.lucky.common.mq.RocketMqNameServer;
 import com.lucky.comment.constant.CommentMqConstant;
 import com.lucky.comment.mq.message.PublishCommentMessage;
 import com.lucky.comment.service.CommentService;
@@ -46,7 +47,7 @@ public class CommentBatchConsumer {
     @Bean
     public DefaultMQPushConsumer mqPushConsumer() throws MQClientException {
         consumer = new DefaultMQPushConsumer(CommentMqConstant.MQ_CONSUMER_GROUP);
-        consumer.setNamesrvAddr(namesrvAddr);
+        RocketMqNameServer.apply(consumer, namesrvAddr);
         consumer.subscribe(CommentMqConstant.MQ_TOPIC, CommentMqConstant.MQ_TAG);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setMessageModel(MessageModel.CLUSTERING);

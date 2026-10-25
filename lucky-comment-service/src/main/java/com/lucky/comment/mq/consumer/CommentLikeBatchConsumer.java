@@ -1,6 +1,7 @@
 package com.lucky.comment.mq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lucky.common.mq.RocketMqNameServer;
 import com.lucky.comment.cache.CommentLikeCache;
 import com.lucky.comment.constant.CommentLikeMqConstant;
 import com.lucky.comment.entity.CommentLike;
@@ -52,7 +53,7 @@ public class CommentLikeBatchConsumer {
     @PostConstruct
     public void start() throws MQClientException {
         consumer = new DefaultLitePullConsumer(CommentLikeMqConstant.MQ_CONSUMER_GROUP);
-        consumer.setNamesrvAddr(namesrvAddr);
+        RocketMqNameServer.apply(consumer, namesrvAddr);
         consumer.setAutoCommit(false);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         consumer.setMessageModel(MessageModel.CLUSTERING);
