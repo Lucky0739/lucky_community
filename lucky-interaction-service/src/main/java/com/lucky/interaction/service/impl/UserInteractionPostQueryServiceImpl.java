@@ -52,6 +52,12 @@ public class UserInteractionPostQueryServiceImpl implements UserInteractionPostQ
     private PageResult<UserPostSummaryVO> pagePosts(Long ownerId, Long viewerId,
                                                     UserPostListQueryDTO query,
                                                     InteractionKind kind) {
+        if (viewerId == null) {
+            throw new BusinessException("未登录，请先登录");
+        }
+        if (ownerId == null || !ownerId.equals(viewerId)) {
+            throw new BusinessException("仅可查看自己的点赞或收藏列表");
+        }
         if (!userReadMapper.existsById(ownerId)) {
             throw new BusinessException("用户不存在");
         }

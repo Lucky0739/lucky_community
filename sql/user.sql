@@ -30,7 +30,6 @@ CREATE TABLE community.tb_user_info (
     introduce   varchar(128),                                   -- 个人简介
     fans        integer     DEFAULT 0,                          -- 粉丝数
     followee    integer     DEFAULT 0,                          -- 关注数
-    like_count  integer     DEFAULT 0,                          -- 获赞数：别人赞了该用户的帖子
     gender      integer     DEFAULT 0,                          -- 性别：0男，1女
     birthday    date,                                           -- 生日
     create_time timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
@@ -44,7 +43,6 @@ COMMENT ON COLUMN community.tb_user_info.city IS '城市';
 COMMENT ON COLUMN community.tb_user_info.introduce IS '个人简介';
 COMMENT ON COLUMN community.tb_user_info.fans IS '粉丝数';
 COMMENT ON COLUMN community.tb_user_info.followee IS '关注数';
-COMMENT ON COLUMN community.tb_user_info.like_count IS '获赞数。点赞落库时给帖子作者加一，取消时减一';
 COMMENT ON COLUMN community.tb_user_info.gender IS '性别：0男，1女';
 COMMENT ON COLUMN community.tb_user_info.birthday IS '生日';
 COMMENT ON COLUMN community.tb_user_info.create_time IS '创建时间';
@@ -180,11 +178,8 @@ INSERT INTO community.tb_role (id, role_name, role_code, description) VALUES
 INSERT INTO community.tb_user (id, phone, password, nick_name, icon)
 VALUES (1, '13800138000', '$2a$10$xxxx', '平台管理员', '');
 
-INSERT INTO community.tb_user_info (id, user_id, city, introduce, fans, followee, like_count, gender, birthday)
-VALUES (1, 1, '广州', '平台后台管理员账号', 0, 0, 0, 0, NULL);
-
--- 已有库补获赞列。新库建表时已经带上，重复执行无影响。
-ALTER TABLE community.tb_user_info ADD COLUMN IF NOT EXISTS like_count integer DEFAULT 0;
+INSERT INTO community.tb_user_info (id, user_id, city, introduce, fans, followee, gender, birthday)
+VALUES (1, 1, '广州', '平台后台管理员账号', 0, 0, 0, NULL);
 
 INSERT INTO community.tb_user_role (id, user_id, role_id)
 VALUES (1, 1, 3);

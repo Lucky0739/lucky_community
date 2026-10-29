@@ -7,7 +7,6 @@ create table tb_user_info
     introduce   varchar(128),
     fans        integer     default 0,
     followee    integer     default 0,
-    like_count  integer     default 0,
     gender      integer     default 0,
     birthday    date,
     create_time timestamp   default CURRENT_TIMESTAMP not null,
@@ -27,11 +26,6 @@ comment on column tb_user_info.introduce is '个人简介';
 comment on column tb_user_info.fans is '粉丝数';
 
 comment on column tb_user_info.followee is '关注数';
-
-comment on column tb_user_info.like_count is '获赞数。点赞落库时给帖子作者加一，取消时减一';
-
--- 已有库补这一列。新库建表时已经带上，重复执行无影响。
-alter table tb_user_info add column if not exists like_count integer default 0;
 
 comment on column tb_user_info.gender is '性别：0男，1女';
 

@@ -44,8 +44,11 @@ const fanHasMore = ref(false)
 const relationLoading = ref(false)
 const relationError = ref('')
 const replies = ref([])
-const replyPageNum = ref(1)
+const replyCursor = ref('')
 const replyHasMore = ref(false)
+const interactionPageNum = ref(1)
+const interactionHasMore = ref(false)
+const interactionTotal = ref(0)
 
 const isSelf = computed(() => auth.loggedIn && idStr(auth.userId) === idStr(route.params.userId))
 const shownFollow = computed(() => (followTotal.value == null ? Number(profile.value?.followee) || 0 : followTotal.value))
@@ -54,12 +57,23 @@ const shownFans = computed(() => {
   return Number(profile.value?.fans) || 0
 })
 
-const tabs = [
+const allTabs = [
   { id: 'posts', label: '贴子' },
   { id: 'replies', label: '回贴' },
-  { id: 'likes', label: '点赞' },
-  { id: 'favorites', label: '收藏' },
+  { id: 'likes', label: '点赞', selfOnly: true },
+  { id: 'favorites', label: '收藏', selfOnly: true },
 ]
+
+const visibleTabs = computed(() =>
+  allTabs.filter((item) => !item.selfOnly || isSelf.value),
+)
+
+const emptyTabHint = computed(() => {
+  if (tab.value === 'posts') return '还没有发布帖子'
+  if (tab.value === 'likes') return '还没有点赞过的帖子'
+  if (tab.value === 'favorites') return '还没有收藏过的帖子'
+  return '什么都没有，这里一片荒芜...'
+})
 
 function formatCount(n) {
   const num = Number(n) || 0
@@ -237,28 +251,32 @@ async function loadPosts(append) {
 async function loadReplies(append) {
   if (!auth.loggedIn) {
     replies.value = []
+    replyCursor.value = ''
     replyHasMore.value = false
     listError.value = ''
     return
   }
   listLoading.value = true
   listError.value = ''
-  const pageNum = append ? replyPageNum.value + 1 : 1
+  if (!append) {
+    replyCursor.value = ''
+  }
+  const lastId = append ? replyCursor.value : ''
   try {
+    const body = {
+      userId: idStr(route.params.userId),
+      pageSize: 20,
+    }
+    if (lastId) body.lastId = lastId
     const page = await request('/comment/user/page', {
       method: 'POST',
       token: auth.accessToken,
-      body: {
-        userId: idStr(route.params.userId),
-        pageNum,
-        pageSize: 20,
-      },
+      body,
     })
     const records = page?.records || []
     replies.value = append ? replies.value.concat(records) : records
-    replyPageNum.value = pageNum
-    const total = Number(page?.total) || 0
-    replyHasMore.value = replies.value.length < total
+    replyCursor.value = page?.nextCursor ? idStr(page.nextCursor) : ''
+    replyHasMore.value = Boolean(replyCursor.value)
   } catch (e) {
     listError.value = e.message || '回贴加载失败'
   } finally {
@@ -266,23 +284,31 @@ async function loadReplies(append) {
   }
 }
 
-async function loadInteraction(path) {
-  if (!auth.loggedIn) {
+async function loadInteraction(path, append = false) {
+  if (!isSelf.value || !auth.loggedIn) {
     posts.value = []
     nextCursor.value = ''
+    interactionHasMore.value = false
     listError.value = ''
     return
   }
   listLoading.value = true
   listError.value = ''
+  const pageNum = append ? interactionPageNum.value + 1 : 1
   try {
     const userId = idStr(route.params.userId)
-    const page = await requestPage(`${path}?userId=${userId}&pageNum=1&pageSize=20`, {
-      token: auth.accessToken,
-    })
-    posts.value = page.records || []
+    const page = await requestPage(
+      `${path}?userId=${userId}&pageNum=${pageNum}&pageSize=20`,
+      { token: auth.accessToken },
+    )
+    const records = page.records || []
+    posts.value = append ? posts.value.concat(records) : records
+    interactionPageNum.value = pageNum
+    interactionTotal.value = Number(page.total) || 0
+    interactionHasMore.value = posts.value.length < interactionTotal.value
     nextCursor.value = ''
   } catch (e) {
+    if (!append) posts.value = []
     listError.value = e.message || '加载失败'
   } finally {
     listLoading.value = false
@@ -293,11 +319,21 @@ function loadTab() {
   posts.value = []
   replies.value = []
   nextCursor.value = ''
+  interactionPageNum.value = 1
+  interactionHasMore.value = false
+  interactionTotal.value = 0
   listError.value = ''
+  if (tab.value === 'likes' || tab.value === 'favorites') {
+    if (!isSelf.value) {
+      tab.value = 'posts'
+      loadPosts(false)
+      return
+    }
+  }
   if (tab.value === 'posts') loadPosts(false)
   else if (tab.value === 'replies') loadReplies(false)
-  else if (tab.value === 'likes') loadInteraction('/thumb/page')
-  else if (tab.value === 'favorites') loadInteraction('/favorite/page')
+  else if (tab.value === 'likes') loadInteraction('/thumb/page', false)
+  else if (tab.value === 'favorites') loadInteraction('/favorite/page', false)
 }
 
 function openReplyPost(item) {
@@ -399,11 +435,26 @@ async function deletePost(post, event) {
 
 watch(() => route.params.userId, () => {
   loadProfile()
-  if (tab.value !== 'posts') tab.value = 'posts'
-  else loadTab()
+  if ((tab.value === 'likes' || tab.value === 'favorites') && !isSelf.value) {
+    tab.value = 'posts'
+  }
+  loadTab()
 }, { immediate: true })
 
 watch(tab, loadTab)
+
+watch(isSelf, (self) => {
+  if (!self && (tab.value === 'likes' || tab.value === 'favorites')) {
+    tab.value = 'posts'
+  }
+})
+
+watch(
+  () => auth.loggedIn,
+  () => {
+    if (isSelf.value) loadTab()
+  },
+)
 </script>
 
 <template>
@@ -445,7 +496,7 @@ watch(tab, loadTab)
 
           <div class="tabs">
             <button
-              v-for="item in tabs"
+              v-for="item in visibleTabs"
               :key="item.id"
               type="button"
               :class="{ on: tab === item.id }"
@@ -491,7 +542,7 @@ watch(tab, loadTab)
             <button type="button" class="login" @click="showLogin = true">登录</button>
           </div>
           <div v-else-if="(tab === 'posts' || tab === 'likes' || tab === 'favorites') && !posts.length" class="empty">
-            <p>什么都没有，这里一片荒芜...</p>
+            <p>{{ emptyTabHint }}</p>
           </div>
           <template v-if="tab === 'posts' || tab === 'likes' || tab === 'favorites'">
           <article v-for="post in posts" :key="post.postId" class="post" @click="openPost(post)">
@@ -531,6 +582,14 @@ watch(tab, loadTab)
             </footer>
           </article>
           <button v-if="tab === 'posts' && nextCursor" type="button" class="more" @click="loadPosts(true)">
+            加载更多
+          </button>
+          <button
+            v-if="(tab === 'likes' || tab === 'favorites') && interactionHasMore"
+            type="button"
+            class="more"
+            @click="loadInteraction(tab === 'likes' ? '/thumb/page' : '/favorite/page', true)"
+          >
             加载更多
           </button>
           </template>

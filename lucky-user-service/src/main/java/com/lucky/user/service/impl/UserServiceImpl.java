@@ -25,6 +25,7 @@ import com.lucky.user.service.PermissionService;
 import com.lucky.user.service.UserService;
 import com.lucky.user.vo.LoginVO;
 import com.lucky.user.vo.RoleVO;
+import com.lucky.user.vo.UserProfileVO;
 import com.lucky.user.api.vo.UserBriefVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -72,13 +73,12 @@ public class UserServiceImpl implements UserService {
         } catch (DuplicateKeyException e) {
             throw new BusinessException("该手机号已注册");
         }
-        // 3. 用户扩展信息：粉丝数、关注数、获赞数初始为 0
+        // 3. 用户扩展信息：粉丝数、关注数初始为 0
         UserInfo userInfo = new UserInfo();
         userInfo.setId(IdUtil.getSnowflakeNextId());
         userInfo.setUserId(id);
         userInfo.setFans(0);
         userInfo.setFollowee(0);
-        userInfo.setLikeCount(0);
         userInfoMapper.insert(userInfo);
         // 4. 手机号记录
         UserPhone userPhone = new UserPhone();
@@ -160,9 +160,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserProfileVO getProfile(Long userId) {
+        if (userId == null) {
+            throw new BusinessException("用户ID不能为空");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        UserInfo info = userInfoMapper.selectByUserId(userId);
+        UserProfileVO profile = new UserProfileVO();
+        profile.setUserId(user.getId());
+        profile.setNickName(user.getNickName());
+        profile.setIcon(user.getIcon());
+        profile.setCreateTime(user.getCreateTime());
+        if (info != null) {
+            profile.setCity(info.getCity());
+            profile.setIntroduce(info.getIntroduce());
+            profile.setFans(info.getFans() == null ? 0 : info.getFans());
+            profile.setFollowee(info.getFollowee() == null ? 0 : info.getFollowee());
+            profile.setGender(info.getGender());
+            profile.setBirthday(info.getBirthday());
+        } else {
+            profile.setFans(0);
+            profile.setFollowee(0);
+        }
+        return profile;
+    }
+
+    @Override
     public UserBriefVO getBrief(Long userId) {
         if (userId == null) {
-            return null;
+            throw new BusinessException("用户ID不能为空");
         }
         User user = userMapper.selectById(userId);
         if (user == null) {

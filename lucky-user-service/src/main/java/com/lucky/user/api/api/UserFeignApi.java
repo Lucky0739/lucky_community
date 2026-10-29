@@ -19,11 +19,9 @@ import java.util.List;
 @FeignClient(name = ApiConstants.SERVICE_NAME, contextId = "userFeignApi")
 public interface UserFeignApi {
 
-    String PREFIX = "/user";
-
-    @GetMapping(PREFIX + "/brief/{userId}")
+    @GetMapping("/user/brief/{userId}")
     Result<UserBriefVO> brief(@PathVariable("userId") Long userId);
 
-    @PostMapping(PREFIX + "/brief/batch")
+    @PostMapping("/user/brief/batch")
     Result<List<UserBriefVO>> findByIds(@RequestBody @Valid FindUsersByIdsDTO findUsersByIdsDTO);
 }
