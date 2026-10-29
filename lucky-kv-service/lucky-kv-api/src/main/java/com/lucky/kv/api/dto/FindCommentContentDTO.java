@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FindCommentContentDTO {
 
-    /** 帖子 ID。查询时对应 Cassandra comment_content.note_id */
+    /** 帖子 ID。查询时对应 Cassandra comment_content.post_id */
     @NotNull(message = "帖子 ID 不能为空")
     private Long postId;
 
