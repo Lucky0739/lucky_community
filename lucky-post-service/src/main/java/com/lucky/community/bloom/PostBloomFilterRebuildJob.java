@@ -43,7 +43,6 @@ public class PostBloomFilterRebuildJob {
     /**
      * 框架 {@code LongBloomFilter} 的预热锁后缀（见其类注释）。
      * 重建前必须先拿到它：否则 clear() 可能删掉另一个实例灌到一半的位图，
-     * 而对方结束时仍会写 warmed 标记，留下「完整」的假象。
      */
     private static final String WARM_UP_LOCK_SUFFIX = ":warmUp:lock";
     private static final long WARM_UP_LOCK_WAIT_SECONDS = 30L;
