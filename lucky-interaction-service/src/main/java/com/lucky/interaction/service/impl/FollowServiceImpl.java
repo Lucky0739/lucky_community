@@ -17,6 +17,8 @@ import com.lucky.interaction.mq.message.FollowMessage;
 import com.lucky.interaction.service.FollowService;
 import com.lucky.interaction.support.entity.BarBrief;
 import com.lucky.common.dto.PageQueryDTO;
+import com.lucky.interaction.support.entity.UserBrief;
+import com.lucky.interaction.vo.BarFollowerVO;
 import com.lucky.interaction.vo.FollowBarSnapshotVO;
 import com.lucky.interaction.vo.FollowBarVO;
 import lombok.RequiredArgsConstructor;
@@ -291,6 +293,51 @@ public class FollowServiceImpl implements FollowService {
             followed.addAll(ids);
         }
         return followed;
+    }
+
+    @Override
+    public PageResult<BarFollowerVO> pageBarFollowers(Long barId, int pageNum, int pageSize) {
+        if (barId == null) {
+            throw new BusinessException("贴吧不存在");
+        }
+        if (!barReadMapper.existsActive(barId)) {
+            throw new BusinessException("贴吧不存在");
+        }
+        int safePageNum = Math.max(pageNum, 1);
+        int safePageSize = Math.min(Math.max(pageSize, 1), 50);
+        int offset = (safePageNum - 1) * safePageSize;
+        long total = followMapper.countByBarId(barId);
+        if (total == 0) {
+            return new PageResult<>(List.of(), 0, safePageNum, safePageSize);
+        }
+        List<Follow> rows = followMapper.selectPageByBarId(barId, offset, safePageSize);
+        if (rows.isEmpty()) {
+            return new PageResult<>(List.of(), total, safePageNum, safePageSize);
+        }
+        List<Long> userIds = new ArrayList<>(rows.size());
+        for (Follow row : rows) {
+            userIds.add(row.getUserId());
+        }
+        Map<Long, UserBrief> userById = new HashMap<>();
+        List<UserBrief> users = userReadMapper.selectByIds(userIds);
+        if (users != null) {
+            for (UserBrief user : users) {
+                userById.put(user.getId(), user);
+            }
+        }
+        List<BarFollowerVO> records = new ArrayList<>(rows.size());
+        for (Follow row : rows) {
+            BarFollowerVO vo = new BarFollowerVO();
+            vo.setUserId(row.getUserId());
+            UserBrief user = userById.get(row.getUserId());
+            if (user != null) {
+                vo.setNickName(user.getNickName());
+                vo.setIcon(user.getIcon());
+            }
+            vo.setFollowTime(row.getCreateTime());
+            records.add(vo);
+        }
+        return new PageResult<>(records, total, safePageNum, safePageSize);
     }
 
     /** PostgreSQL LIKE / ILIKE 的 % _ \ 转义，避免用户输入被当成通配符 */

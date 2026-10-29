@@ -8,6 +8,7 @@ import com.lucky.interaction.dto.FollowListQueryDTO;
 import com.lucky.interaction.service.FollowFeedCardQueryService;
 import com.lucky.interaction.service.FollowFeedService;
 import com.lucky.interaction.service.FollowService;
+import com.lucky.interaction.vo.BarFollowerVO;
 import com.lucky.interaction.vo.FollowBarSnapshotVO;
 import com.lucky.interaction.vo.FollowBarVO;
 import com.lucky.interaction.vo.FollowFeedCardVO;
@@ -50,6 +51,17 @@ public class FollowController {
     @GetMapping("/page")
     public Result<List<FollowBarVO>> page(@ModelAttribute @Valid FollowListQueryDTO followListQueryDTO) {
         PageResult<FollowBarVO> page = followService.pageFollowees(UserContext.getUserId(), followListQueryDTO);
+        return Result.success(page.getRecords(), page.getTotal());
+    }
+
+    /**
+     * 某个贴吧的粉丝列表（关注该吧的用户）。
+     */
+    @GetMapping("/bar/{barId}/fans/page")
+    public Result<List<BarFollowerVO>> barFans(@PathVariable("barId") Long barId,
+                                               @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+                                               @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+        PageResult<BarFollowerVO> page = followService.pageBarFollowers(barId, pageNum, pageSize);
         return Result.success(page.getRecords(), page.getTotal());
     }
 

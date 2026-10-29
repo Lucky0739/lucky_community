@@ -2,6 +2,7 @@ package com.lucky.interaction.service;
 
 import com.lucky.common.vo.PageResult;
 import com.lucky.interaction.dto.FollowListQueryDTO;
+import com.lucky.interaction.vo.BarFollowerVO;
 import com.lucky.interaction.vo.FollowBarSnapshotVO;
 import com.lucky.interaction.vo.FollowBarVO;
 
@@ -31,4 +32,7 @@ public interface FollowService {
 
     /** 按 id 批量返回贴吧展示字段及 viewer 是否已关注；顺序与入参一致，跳过不存在的吧 */
     List<FollowBarSnapshotVO> listBarSnapshots(Long viewerId, List<Long> barIds);
+
+    /** 某个贴吧的粉丝（关注该吧的用户）分页 */
+    PageResult<BarFollowerVO> pageBarFollowers(Long barId, int pageNum, int pageSize);
 }

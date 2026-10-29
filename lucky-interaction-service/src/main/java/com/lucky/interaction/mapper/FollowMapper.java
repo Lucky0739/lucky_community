@@ -28,4 +28,10 @@ public interface FollowMapper {
     List<Long> selectUserIdsByBarId(@Param("barId") Long barId);
 
     List<Long> selectBarIdsByUserId(@Param("userId") Long userId);
+
+    long countByBarId(@Param("barId") Long barId);
+
+    List<Follow> selectPageByBarId(@Param("barId") Long barId,
+                                   @Param("offset") int offset,
+                                   @Param("limit") int limit);
 }

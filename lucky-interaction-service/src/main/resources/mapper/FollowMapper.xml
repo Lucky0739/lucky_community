@@ -65,4 +65,18 @@
         WHERE user_id = #{userId}
         ORDER BY create_time DESC
     </select>
+
+    <select id="countByBarId" resultType="long">
+        SELECT COUNT(*)
+        FROM tb_follow
+        WHERE bar_id = #{barId}
+    </select>
+
+    <select id="selectPageByBarId" resultType="com.lucky.interaction.entity.Follow">
+        SELECT f.id, f.user_id AS userId, f.bar_id AS barId, f.create_time AS createTime
+        FROM tb_follow f
+        WHERE f.bar_id = #{barId}
+        ORDER BY f.create_time DESC, f.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>
