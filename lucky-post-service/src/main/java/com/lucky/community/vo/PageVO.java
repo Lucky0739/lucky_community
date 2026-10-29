@@ -33,4 +33,10 @@ public class PageVO<T> {
      * 客户端以<b>空数组</b>为终止信号即可，不必依赖 null
      */
     private Long nextCursor;
+
+    /**
+     * 贴吧流下一页热度。和 {@code nextCursor} 一起作为下次的 {@code lastScore}、{@code lastId}。
+     * 全站流为 null。
+     */
+    private Long nextScore;
 }
